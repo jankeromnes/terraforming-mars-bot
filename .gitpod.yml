@@ -3,14 +3,17 @@ ports:
     onOpen: open-preview
 
 tasks:
-  - name: Game
+  - name: Server
     before: cd terraforming-mars
     init: >
       npm install &&
       npm run build
     command: >
-      npm run start &&
+      npm run start
+  - name: Game
+    command: >
       gp await-port 8080 &&
-      echo "TODO start game"
+      node start-game $(gp url 8080)
   - name: Bot
-    command: "TODO start bot"
+    init: npm install
+    command: node bot
