@@ -1,0 +1,6 @@
+tasks:
+  - name: Game
+    before: cd terraforming-mars
+    init: npm install && npm run build
+    command: npm run start
+  - name: Bot
