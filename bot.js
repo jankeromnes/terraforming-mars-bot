@@ -20,11 +20,14 @@ const playerId = playerUrl.searchParams.get('id');
 
 (async () => {
   const game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
-  console.log(game);
+  const bot = require(argv.bot || './bots/random');
 
-  // TODO: process `game.waitingFor` and query AI
-  console.log('Waiting for:', game.waitingFor);
+  // TODO: pre-process `game.waitingFor`
+  console.log('Game is waiting for:', game.waitingFor);
   console.log(PlayerInputTypes);
+
+  const move = await bot.play(game);
+  console.log('Bot plays:', move);
 
   // TODO: POST /player/input?id=542b258c4f2 [["Teractor"],["Viral Enhancers","Kelp Farming"]]
 })();
