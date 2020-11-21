@@ -1,0 +1,3 @@
+[submodule "terraforming-mars"]
+	path = terraforming-mars
+	url = https://github.com/bafolts/terraforming-mars/
