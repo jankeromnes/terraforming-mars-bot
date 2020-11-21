@@ -19,16 +19,16 @@ const serverUrl = playerUrl.origin;
 const playerId = playerUrl.searchParams.get('id');
 
 (async () => {
-  const game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
   const bot = require(argv.bot || './bots/random');
+  const game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
 
-  // TODO: pre-process `game.waitingFor`?
-  // console.log('Game is waiting for: ' + JSON.stringify(game.waitingFor, null, 2));
-  // console.log(PlayerInputTypes);
-
-  const move = await bot.play(game);
+  // Initial research phase
+  const availableCorporations = game.waitingFor.options[0].cards;
+  const availableCards = game.waitingFor.options[1].cards;
+  const move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
   console.log('Bot plays:', move);
 
   const data = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
-  console.log(data);
+  console.log('Game is waiting for: ' + JSON.stringify(data.waitingFor, null, 2));
+  console.log(PlayerInputTypes);
 })();
