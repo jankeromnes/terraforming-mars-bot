@@ -14,7 +14,6 @@ if (argv.help || argv._.length > 1) {
 }
 
 const serverUrl = argv._[0] || 'http://localhost:8080';
-console.log('Server URL:', serverUrl);
 
 const settings = JSON.parse(fs.readFileSync('./assets/tm_settings_solo_game.json', 'utf-8'));
 
