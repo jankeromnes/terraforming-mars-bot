@@ -6,7 +6,7 @@ const request = require('./lib/request');
 
 const PlayerInputTypes = require('./terraforming-mars/build/src/PlayerInputTypes');
 
-const usage = `Usage: node bot PLAYER_LINK`;
+const usage = `Usage: node play-bot PLAYER_LINK`;
 const argv = minimist(process.argv.slice(2));
 
 if (argv.help || argv._.length !== 1) {
