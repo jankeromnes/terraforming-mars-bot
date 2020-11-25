@@ -2,6 +2,7 @@
 // The following code is covered by the MIT license.
 
 const minimist = require('minimist');
+const path = require('path');
 const request = require('./lib/request');
 
 const PlayerInputTypes = require('./terraforming-mars/build/src/PlayerInputTypes');
@@ -19,7 +20,7 @@ const serverUrl = playerUrl.origin;
 const playerId = playerUrl.searchParams.get('id');
 
 (async () => {
-  const bot = require(argv.bot || './bots/random');
+  const bot = require('./' + path.join('.', argv.bot || 'bots/random'));
   const game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
 
   // Initial research phase
