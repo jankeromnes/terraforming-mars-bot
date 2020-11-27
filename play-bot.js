@@ -34,11 +34,12 @@ const playerId = playerUrl.searchParams.get('id');
 
   // Action phase
   logGameState(data);
-  console.log(data);
-  console.log(PlayerInputTypes);
+  const move2 = await bot.playActionPhase(data);
+  console.log('Bot plays:', move2);
 })();
 
 function logGameState(game) {
-  console.log(`Game state (${game.players.length}p): temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}`);
-  console.log('Game is waiting for: ' + JSON.stringify(data.waitingFor, null, 2));
+  console.log(`Game state (${game.players.length}p): temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
+  console.log('Waiting for: ' + JSON.stringify(game.waitingFor, null, 2));
+  console.log(PlayerInputTypes);
 }

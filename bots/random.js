@@ -11,3 +11,10 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
   const initialCards = [ chooseRandomItem(availableCards).name ];
   return [[corporation], initialCards];
 }
+
+// Play actions
+exports.playActionPhase = async (game) => {
+  return [["0"],["1"]];
+  // [["0"],["1"],["1"]]
+  // [["0"],["Power Plant","{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
+}
