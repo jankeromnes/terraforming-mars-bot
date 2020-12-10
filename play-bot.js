@@ -33,13 +33,23 @@ const playerId = playerUrl.searchParams.get('id');
   const data = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
 
   // Action phase
+  annotateWaitingFor(data.waitingFor);
   logGameState(data);
-  const move2 = await bot.playActionPhase(data);
+  const move2 = await bot.play(data, data.waitingFor);
   console.log('Bot plays:', move2);
 })();
 
+function annotateWaitingFor(waitingFor) {
+  const playerInputType = PlayerInputTypes[waitingFor.inputType];
+  if (!playerInputType) {
+    throw new Error(`Unsupported player input type ${waitingFor.inputType}! Supported types: ${JSON.stringify(PlayerInputTypes, null, 2)}`);
+  }
+  waitingFor.playerInputType = playerInputType;
+  for (const option of (waitingFor.options || [])) {
+    annotateWaitingFor(option);
+  }
+}
+
 function logGameState(game) {
   console.log(`Game state (${game.players.length}p): temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
-  console.log('Waiting for: ' + JSON.stringify(game.waitingFor, null, 2));
-  console.log(PlayerInputTypes);
 }

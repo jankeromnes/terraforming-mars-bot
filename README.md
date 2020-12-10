@@ -73,5 +73,5 @@ node start-game https://my-tm-server.com
 node play-bot https://my-tm-server.com/player?id=123456789
 
 # Make a specific bot play Terraforming Mars
-node play-bot --bot=bots/random https://my-tm-server.com/player?id=123456789
+node play-bot --bot=bots/random.js https://my-tm-server.com/player?id=123456789
 ```
