@@ -44,8 +44,7 @@ exports.play = async (game, waitingFor) => {
 
     case 'SELECT_CARD':
       // [["Designed Micro-organisms","Media Archives"]]
-      const card = chooseRandomItem(waitingFor.cards).name;
-      return [[card]];
+      return [[chooseRandomItem(waitingFor.cards).name]];
 
     case 'SELECT_HOW_TO_PAY':
       // "{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"
@@ -53,7 +52,17 @@ exports.play = async (game, waitingFor) => {
 
     case 'SELECT_HOW_TO_PAY_FOR_CARD':
       // [["Asteroid","{\"heat\":0,\"megaCredits\":14,\"steel\":0,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      const card = chooseRandomItem(waitingFor.cards);
+      const payment = {
+        heat: 0,
+        megaCredits: card.calculatedCost,
+        steel: 0,
+        titanium: 0,
+        microbes: 0,
+        floaters: 0,
+        isResearchPhase: false,
+      };
+      return [[card.name, JSON.stringify(payment)]];
 
     case 'SELECT_OPTION':
       return [['1']];
