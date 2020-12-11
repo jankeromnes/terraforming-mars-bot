@@ -24,19 +24,21 @@ const playerId = playerUrl.searchParams.get('id');
   const bot = require('./' + path.join('.', argv.bot || 'bots/random'));
 
   // Initial research phase
-  const game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
+  let game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
   logGameState(game);
   const availableCorporations = game.waitingFor.options[0].cards;
   const availableCards = game.waitingFor.options[1].cards;
-  const move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
+  let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
   console.log('Bot plays:', move);
-  const data = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
+  game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
 
-  // Action phase
-  annotateWaitingFor(data.waitingFor);
-  logGameState(data);
-  const move2 = await bot.play(data, data.waitingFor);
-  console.log('Bot plays:', move2);
+  while (true) {
+    annotateWaitingFor(game.waitingFor);
+    logGameState(game);
+    move = await bot.play(game, game.waitingFor);
+    console.log('Bot plays:', move);
+    game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
+  }
 })();
 
 function annotateWaitingFor(waitingFor) {

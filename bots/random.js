@@ -23,7 +23,6 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
   return [[corporation], initialCards];
 }
 
-// [["0"],["1"],["1"]]
 // [["0"],["Power Plant","{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
 exports.play = async (game, waitingFor) => {
   console.log('Game is waiting for:', JSON.stringify(waitingFor, null, 2));
@@ -37,7 +36,8 @@ exports.play = async (game, waitingFor) => {
 
     case 'OR_OPTIONS':
       const option = chooseRandomItem(waitingFor.options);
-      return exports.play(game, option);
+      const choice = String(waitingFor.options.indexOf(option));
+      return [[choice]].concat(await exports.play(game, option));
 
     case 'SELECT_AMOUNT':
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
@@ -50,10 +50,11 @@ exports.play = async (game, waitingFor) => {
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
 
     case 'SELECT_HOW_TO_PAY_FOR_CARD':
+      // [["Asteroid","{\"heat\":0,\"megaCredits\":14,\"steel\":0,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
 
     case 'SELECT_OPTION':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      return [['1']];
 
     case 'SELECT_PLAYER':
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
