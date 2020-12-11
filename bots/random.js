@@ -43,7 +43,9 @@ exports.play = async (game, waitingFor) => {
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
 
     case 'SELECT_CARD':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      // [["Designed Micro-organisms","Media Archives"]]
+      const card = chooseRandomItem(waitingFor.cards).name;
+      return [[card]];
 
     case 'SELECT_HOW_TO_PAY':
       // "{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"
@@ -60,7 +62,8 @@ exports.play = async (game, waitingFor) => {
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
 
     case 'SELECT_SPACE':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      const space = chooseRandomItem(waitingFor.availableSpaces);
+      return [[space]];
 
     case 'SELECT_DELEGATE':
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
