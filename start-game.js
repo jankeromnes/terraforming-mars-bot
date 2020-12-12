@@ -19,5 +19,5 @@ const settings = JSON.parse(fs.readFileSync('./assets/tm_settings_solo_game.json
 
 (async () => {
   const game = await request('PUT', `${serverUrl}/game`, settings);
-  console.log('Started new game. Player links:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${serverUrl}/player?id=${p.id}`));
+  console.log('Started new game. Player links:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${serverUrl}/player?id=${p.id}`).join('\n'));
 })();
