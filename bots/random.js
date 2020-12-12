@@ -11,9 +11,14 @@
 //   3. Run `node start-game`, then copy the player link
 //   4. Run `node play-bot --bot=bots/my-bot.js PLAYER_LINK`
 
+// Good luck & have fun!
+
 // The random bot will always choose randomly when presented with a choice
 function chooseRandomItem (items) {
-  return items[Math.floor(Math.random() * items.length)];
+  return items[chooseRandomNumber(0, items.length - 1)];
+}
+function chooseRandomNumber (min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 // Choose corporation and initial cards
@@ -40,11 +45,16 @@ exports.play = async (game, waitingFor) => {
       return [[choice]].concat(await exports.play(game, option));
 
     case 'SELECT_AMOUNT':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      return [[String(chooseRandomNumber(waitingFor.min, waitingFor.max))]];
 
     case 'SELECT_CARD':
-      // [["Designed Micro-organisms","Media Archives"]]
-      return [[chooseRandomItem(waitingFor.cards).name]];
+      let numberOfCards = chooseRandomNumber(waitingFor.minCardsToSelect, waitingFor.maxCardsToSelect);
+      let cards = [];
+      while (cards.length < numberOfCards) {
+        const remainingCards = waitingFor.cards.filter(c => !cards.includes(c.name));
+        cards.push(chooseRandomItem(remainingCards).name);
+      }
+      return [cards];
 
     case 'SELECT_HOW_TO_PAY':
       // "{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"
