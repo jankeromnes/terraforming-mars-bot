@@ -35,6 +35,8 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 }
 ```
 
+> 💡 Feel free to inspect the `game` object, for example with `console.log(game)`, as it holds all the interesting details about the game in progress.
+
 4. Test your bot by starting a new game of Terraforming Mars, and make your bot play it:
 
 - `node start-game`: Start a new game, and outputs a player link
@@ -50,7 +52,20 @@ Started new game. Player links:
 $ node play-bot --bot=bots/my-bot http://localhost:8080/player?id=6d9796440d25
 Bot plays: [ [ 'CrediCor' ], [ 'Solar Wind Power' ] ]
 ...
+Game ended!
+Game state (1p): gen=14, temp=-20, oxy=1, oceans=2, phase=end
+Final scores:
+  - Bot (red): 22 points
 ```
+
+> 💡 This should make your bot play until the end of the game. However, if an error occurs (for example, if your bot tries to play an illegal move) you can debug it like so:
+> 
+> - Notice in the logs what the game was waiting for, and what your bot attempted to play
+> - Then, open the bot's player link in your browser
+> - Open your browser's Developer Tools, then open the Network panel, and clear all previous entries
+> - Manually play what your bot should have played
+> - Click on the first item that appeared in your Network panel (looks like `/input`), and display the request's JSON payload
+> - Then, compare what your bot tried to play with what you manually played -- this should tell you what your bot should do differently
 
 ## Helper scripts
 
