@@ -28,7 +28,32 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
   return [[corporation], initialCards];
 }
 
-// [["0"],["Power Plant","{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
+// Choose how to pay for a given card (or amount)
+function chooseHowToPay (game, waitingFor, card) {
+  // Not-so-random: Prefer non-megacredit resources when available (in case there are not enough megacredits)
+  let megaCredits = card ? card.calculatedCost : waitingFor.amount;
+  let heat = 0;
+  if (waitingFor.canUseHeat) {
+    heat = Math.min(game.heat, megaCredits);
+    megaCredits -= heat;
+  }
+  let steel = 0;
+  if ((waitingFor.canUseSteel || card && card.tags.includes('building'))) {
+    steel = Math.min(game.steel, Math.floor(megaCredits / game.steelValue));
+    megaCredits -= steel * game.steelValue;
+  }
+  let titanium = 0;
+  if ((waitingFor.canUseTitanium || card && card.tags.includes('space'))) {
+    titanium = Math.min(game.titanium, Math.floor(megaCredits / game.titaniumValue));
+    megaCredits -= titanium * game.titaniumValue;
+  }
+  let microbes = 0;
+  let floaters = 0;
+  let isResearchPhase = false;
+  return { heat, megaCredits, steel, titanium, microbes, floaters, isResearchPhase };
+}
+
+// Play a turn of Terraforming Mars
 exports.play = async (game, waitingFor) => {
   console.log('Game is waiting for:', JSON.stringify(waitingFor, null, 2));
   switch (waitingFor.playerInputType) {
@@ -57,22 +82,14 @@ exports.play = async (game, waitingFor) => {
       return [cards];
 
     case 'SELECT_HOW_TO_PAY':
-      // "{\"heat\":0,\"megaCredits\":0,\"steel\":2,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      return [[JSON.stringify(chooseHowToPay(game, waitingFor))]];
 
     case 'SELECT_HOW_TO_PAY_FOR_CARD':
-      // [["Asteroid","{\"heat\":0,\"megaCredits\":14,\"steel\":0,\"titanium\":0,\"microbes\":0,\"floaters\":0,\"isResearchPhase\":false}"]]
       const card = chooseRandomItem(waitingFor.cards);
-      const payment = {
-        heat: 0,
-        megaCredits: card.calculatedCost,
-        steel: 0,
-        titanium: 0,
-        microbes: 0,
-        floaters: 0,
-        isResearchPhase: false,
-      };
-      return [[card.name, JSON.stringify(payment)]];
+      // For some reason, card.calculatedCost is always 0. So, get this info from the cards in hand.
+      const cardInHand = game.cardsInHand.find(c => c.name === card.name);
+      card.calculatedCost = cardInHand.calculatedCost;
+      return [[card.name, JSON.stringify(chooseHowToPay(game, waitingFor, card))]];
 
     case 'SELECT_OPTION':
       return [['1']];
