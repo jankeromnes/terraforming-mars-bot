@@ -14,6 +14,7 @@ tasks:
   - name: Game
     command: >
       gp await-port 8080 &&
+      sleep 2 &&
       node start-game $(gp url 8080)
   - name: Bot
     init: npm install
