@@ -30,6 +30,7 @@ const cardFinder = new CardFinder();
   logGameState(game);
   const availableCorporations = game.waitingFor.options[0].cards;
   const availableCards = game.waitingFor.options[1].cards;
+  annotateCards(availableCards);
   let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
   console.log('Bot plays:', move);
   game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
@@ -47,8 +48,8 @@ const cardFinder = new CardFinder();
   logGameScore(game);
 })();
 
-// Add useful extra information
-function annotateWaitingFor(waitingFor) {
+// Add additional useful information to a game's "waitingFor" object
+function annotateWaitingFor (waitingFor) {
   // Annotate expected player input type (e.g. inputType '2' means playerInputType 'SELECT_AMOUNT')
   const playerInputType = PlayerInputTypes[waitingFor.inputType];
   if (!playerInputType) {
@@ -56,23 +57,32 @@ function annotateWaitingFor(waitingFor) {
   }
   waitingFor.playerInputType = playerInputType;
   // Annotate any missing card information (e.g. tags)
-  for (const card of (waitingFor.cards || [])) {
-    const projectCard = cardFinder.getProjectCardByName(card.name);
-    if (!projectCard) continue;
-    if (!('tags' in card)) {
-      card.tags = projectCard.tags;
-    }
-  }
+  annotateCards(waitingFor.cards || []);
   // Recursively annotate nested waitingFor options
   for (const option of (waitingFor.options || [])) {
     annotateWaitingFor(option);
   }
 }
 
-function logGameState(game) {
+// Add additional useful information to cards
+function annotateCards (cards) {
+  for (const card of cards) {
+    const projectCard = cardFinder.getProjectCardByName(card.name);
+    if (!projectCard) {
+      console.error(new Error(`Could not find card: ${JSON.stringify(card, null, 2)}`));
+      continue;
+    }
+    if (!('tags' in card)) {
+      card.tags = projectCard.tags;
+    }
+    // TODO add production
+  }
+}
+
+function logGameState (game) {
   console.log(`Game state (${game.players.length}p): gen=${game.generation}, temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
 }
 
-function logGameScore(game) {
+function logGameScore (game) {
   console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
 }
