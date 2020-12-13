@@ -59,7 +59,7 @@ Final scores:
 ```
 
 > 💡 This should make your bot play until the end of the game. However, if an error occurs (for example, if your bot tries to play an illegal move) you can debug it like so:
-> 
+>
 > - Notice in the logs what the game was waiting for, and what your bot attempted to play
 > - Then, open the bot's player link in your browser
 > - Open your browser's Developer Tools, then open the Network panel, and clear all previous entries
