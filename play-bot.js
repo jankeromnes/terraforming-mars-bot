@@ -35,6 +35,7 @@ const cardFinder = new CardFinder();
   console.log('Bot plays:', move);
   game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
 
+  // Play the game until the end
   while (game.phase !== 'end') {
     annotateWaitingFor(game, game.waitingFor);
     logGameState(game);
@@ -74,6 +75,7 @@ function annotateCards (game, cards) {
     if (card.calculatedCost === 0 && cardInHand && cardInHand.calculatedCost) {
       card.calculatedCost = cardInHand.calculatedCost;
     }
+    // Check the reference project card to find & annotate more details.
     const projectCard = cardFinder.getProjectCardByName(card.name);
     if (!projectCard) {
       console.error(new Error(`Could not find card: ${JSON.stringify(card, null, 2)}`));
