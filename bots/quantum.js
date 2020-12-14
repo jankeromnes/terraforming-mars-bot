@@ -7,7 +7,7 @@
 //   1. Run `node start-game`, then copy the player link
 //   2. Run `node play-bot --bot=bots/quantum.js PLAYER_LINK`
 
-// The random bot will always choose randomly when presented with a choice
+// TODO: Remove
 function chooseRandomItem (items) {
   return items[chooseRandomNumber(0, items.length - 1)];
 }
