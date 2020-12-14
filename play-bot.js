@@ -79,10 +79,13 @@ function annotateCards (game, cards) {
       console.error(new Error(`Could not find card: ${JSON.stringify(card, null, 2)}`));
       continue;
     }
+    card.cardType = projectCard.cardType;
     if (!('tags' in card)) {
       card.tags = projectCard.tags;
     }
-    // TODO add production
+    if (!('metadata' in card) && ('metadata' in projectCard)) {
+      card.metadata = projectCard.metadata;
+    }
   }
 }
 
