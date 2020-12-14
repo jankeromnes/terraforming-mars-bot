@@ -30,13 +30,13 @@ const cardFinder = new CardFinder();
   logGameState(game);
   const availableCorporations = game.waitingFor.options[0].cards;
   const availableCards = game.waitingFor.options[1].cards;
-  annotateCards(availableCards);
+  annotateCards(game, availableCards);
   let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
   console.log('Bot plays:', move);
   game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
 
   while (game.phase !== 'end') {
-    annotateWaitingFor(game.waitingFor);
+    annotateWaitingFor(game, game.waitingFor);
     logGameState(game);
     move = await bot.play(game, game.waitingFor);
     console.log('Bot plays:', move);
@@ -49,24 +49,31 @@ const cardFinder = new CardFinder();
 })();
 
 // Add additional useful information to a game's "waitingFor" object
-function annotateWaitingFor (waitingFor) {
+function annotateWaitingFor (game, waitingFor) {
   // Annotate expected player input type (e.g. inputType '2' means playerInputType 'SELECT_AMOUNT')
   const playerInputType = PlayerInputTypes[waitingFor.inputType];
   if (!playerInputType) {
     throw new Error(`Unsupported player input type ${waitingFor.inputType}! Supported types: ${JSON.stringify(PlayerInputTypes, null, 2)}`);
   }
   waitingFor.playerInputType = playerInputType;
-  // Annotate any missing card information (e.g. tags)
-  annotateCards(waitingFor.cards || []);
-  // Recursively annotate nested waitingFor options
+  if (waitingFor.cards) {
+    // Annotate any missing card information (e.g. tags)
+    annotateCards(game, waitingFor.cards);
+  }
   for (const option of (waitingFor.options || [])) {
-    annotateWaitingFor(option);
+    // Recursively annotate nested waitingFor options
+    annotateWaitingFor(game, option);
   }
 }
 
 // Add additional useful information to cards
-function annotateCards (cards) {
+function annotateCards (game, cards) {
   for (const card of cards) {
+    // For some reason, card.calculatedCost is sometimes 0. But we get this info from the cards in hand.
+    const cardInHand = game.cardsInHand.find(c => c.name === card.name);
+    if (card.calculatedCost === 0 && cardInHand && cardInHand.calculatedCost) {
+      card.calculatedCost = cardInHand.calculatedCost;
+    }
     const projectCard = cardFinder.getProjectCardByName(card.name);
     if (!projectCard) {
       console.error(new Error(`Could not find card: ${JSON.stringify(card, null, 2)}`));

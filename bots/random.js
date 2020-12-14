@@ -86,9 +86,6 @@ exports.play = async (game, waitingFor) => {
 
     case 'SELECT_HOW_TO_PAY_FOR_CARD':
       const card = chooseRandomItem(waitingFor.cards);
-      // For some reason, card.calculatedCost is always 0. So, get this info from the cards in hand.
-      const cardInHand = game.cardsInHand.find(c => c.name === card.name);
-      card.calculatedCost = cardInHand.calculatedCost;
       return [[card.name, JSON.stringify(chooseHowToPay(game, waitingFor, card))]];
 
     case 'SELECT_OPTION':
