@@ -32,18 +32,18 @@ function evaluateCorporation (corporation, game) {
       return 48; // TODO: Plus 8M for each bonus Steel Production you can gain early.
     case 'Phobolog':
       return 63;
-    case 'Credicor':
+    case 'CrediCor':
       return 57;
-    case 'Ecoline':
+    case 'EcoLine':
       return 62;
-    case 'UNMI':
+    case 'United Nations Mars Initiative':
       return 40;
     case 'Inventrix':
       return 51; // TODO: +4M if that Science Symbol fulfills the requirement of cards you plan to play early.
     case 'Thorgate':
       return 55;
     default:
-      throw new Error(`Unsupported corporation! ${corporation}`);
+      throw new Error(`Unsupported corporation! ${corporation.name}`);
   }
 }
 
