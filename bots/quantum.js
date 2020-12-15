@@ -30,7 +30,7 @@ function evaluateCorporation (corporation, game) {
       return 70;
     case 'Mining Guild':
       return 48; // TODO: Plus 8M for each bonus Steel Production you can gain early.
-    case 'Phobolog':
+    case 'PhoboLog':
       return 63;
     case 'CrediCor':
       return 57;
