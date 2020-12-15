@@ -70,10 +70,15 @@ function annotateWaitingFor (game, waitingFor) {
 // Add additional useful information to cards
 function annotateCards (game, cards) {
   for (const card of cards) {
-    // For some reason, card.calculatedCost is sometimes 0. But we get this info from the cards in hand.
+    // For some reason, card.calculatedCost is always 0.
+    // But we get this info from the dealt project cards or cards in hand.
     const cardInHand = game.cardsInHand.find(c => c.name === card.name);
     if (card.calculatedCost === 0 && cardInHand && cardInHand.calculatedCost) {
       card.calculatedCost = cardInHand.calculatedCost;
+    }
+    const dealtProjectCard = game.dealtProjectCards.find(c => c.name === card.name);
+    if (card.calculatedCost === 0 && dealtProjectCard && dealtProjectCard.cost) {
+      card.calculatedCost = dealtProjectCard.cost;
     }
     // Check the reference project card to find & annotate more details.
     const projectCard = cardFinder.getProjectCardByName(card.name);
