@@ -49,7 +49,92 @@ function evaluateCorporation (corporation, game) {
 
 // Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateCard (card, game) {
-  // TODO
+  let score = -card.calculatedCost;
+  if (card.metadata && card.metadata.victoryPoints) {
+    if (typeof card.metadata.victoryPoints === 'number') {
+      score += 5 * card.metadata.victoryPoints;
+    } else {
+      console.error(new Error('Unsupported victoryPoints format! ' + JSON.stringify(card.metadata.victoryPoints, null, 2)));
+    }
+  }
+  // HACK: Guess card effects by parsing the renderData (will definitely break unless tested)
+  if (card.metadata && card.metadata.renderData) {
+    console.log(card);
+    try {
+      let effectScore = 0;
+      let effectValues = [
+        // Bonus
+        {
+          'cards': 2,
+          'heat': 1,
+          'megacredits': 1,
+          'oceans': 14,
+          'plants': 2,
+          'steel': 2,
+          'temperature': 10,
+          'titanium': 2,
+          'tr': 10,
+        },
+        // Production
+        {
+          'energy': 7,
+          'heat': 6,
+          'megacredits': 5,
+          'plants': 10,
+          'steel': 8,
+          'titanium': 10,
+        },
+      ];
+      function parseRows (rows, level) {
+        for (const row of rows) {
+          let minus = false;
+          for (const item of row) {
+            if (item._rows) {
+              parseRows(item._rows, level + 1);
+              continue;
+            }
+            if (item.anyPlayer) {
+              // Ignore effects to other players.
+              continue;
+            }
+            switch (item.type) {
+              case '-':
+                minus = true;
+                break;
+              case '+':
+                minus = false;
+                break;
+              case ' ':
+                // Ignore.
+                break;
+              case 'nbsp':
+                // Ignore.
+                break;
+              case 'text':
+                // Ignore.
+                break;
+              default:
+                if (effectValues[level][item.type]) {
+                  effectScore += (minus ? -1 : 1) * item.amount * effectValues[level][item.type];
+                  continue;
+                }
+                if (item.tile) {
+                  effectScore += 4;
+                  continue;
+                }
+                throw new Error(`Unsupported renderData type ${item.type} in ` + JSON.stringify(card.metadata.renderData, null, 2));
+            }
+          }
+        }
+      }
+      parseRows(card.metadata.renderData._rows, 0);
+      score += effectScore;
+    } catch (error) {
+      console.error('Could not parse card renderData');
+      console.error(error);
+    }
+  }
+  return score;
 }
 
 // Choose corporation and initial cards
@@ -67,8 +152,12 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
   // Pick the best available corporation
   const corporation = sortedCorporations[0];
 
-  const initialCards = [ chooseRandomItem(availableCards).name ];
-  return [[corporation.name], initialCards];
+  // Pick the best available cards
+  const initialCards = availableCards.filter(c => evaluateCard(c, game) > 3);
+
+  console.log('Quantum bot chose:', corporation, initialCards);
+
+  return [[corporation.name], initialCards.map(c => c.name)];
 }
 
 // Choose how to pay for a given card (or amount)
