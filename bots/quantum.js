@@ -204,22 +204,24 @@ exports.play = async (game, waitingFor) => {
       return [[String(chooseRandomNumber(waitingFor.min, waitingFor.max))]];
 
     case 'SELECT_CARD':
-      let numberOfCards = chooseRandomNumber(waitingFor.minCardsToSelect, waitingFor.maxCardsToSelect);
-      let cards = [];
-      while (cards.length < numberOfCards) {
-        const remainingCards = waitingFor.cards.filter(c => !cards.includes(c.name));
-        cards.push(chooseRandomItem(remainingCards).name);
+      // Pick the best cards
+      const sortedCards = waitingFor.cards
+        .map(c => {
+          c.value = evaluateCard(c, game);
+          return c;
+        })
+        .sort((a, b) => a.value > b.value ? -1 : 1);
+      let numberOfCards = waitingFor.minCardsToSelect;
+      while (numberOfCards < waitingFor.maxCardsToSelect && sortedCards[numberOfCards].value > 3) {
+        numberOfCards++;
       }
-      return [cards];
+      return [sortedCards.slice(0, numberOfCards).map(c => c.name)];
 
     case 'SELECT_HOW_TO_PAY':
       return [[JSON.stringify(chooseHowToPay(game, waitingFor))]];
 
     case 'SELECT_HOW_TO_PAY_FOR_CARD':
       const card = chooseRandomItem(waitingFor.cards);
-      // For some reason, card.calculatedCost is always 0. So, get this info from the cards in hand.
-      const cardInHand = game.cardsInHand.find(c => c.name === card.name);
-      card.calculatedCost = cardInHand.calculatedCost;
       return [[card.name, JSON.stringify(chooseHowToPay(game, waitingFor, card))]];
 
     case 'SELECT_OPTION':
