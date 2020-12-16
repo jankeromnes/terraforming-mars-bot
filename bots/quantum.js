@@ -156,13 +156,12 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
   const initialCards = availableCards.filter(c => evaluateCard(c, game) > 3);
 
   console.log('Quantum bot chose:', corporation, initialCards);
-
   return [[corporation.name], initialCards.map(c => c.name)];
 }
 
 // Choose how to pay for a given card (or amount)
 function chooseHowToPay (game, waitingFor, card) {
-  // Not-so-random: Prefer non-megacredit resources when available (in case there are not enough megacredits)
+  // Prefer non-megacredit resources when available (in case there are not enough megacredits)
   let megaCredits = card ? card.calculatedCost : waitingFor.amount;
   let heat = 0;
   if (waitingFor.canUseHeat) {
