@@ -30,6 +30,7 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 // Choose how to pay for a given card (or amount)
 function chooseHowToPay (game, waitingFor, card) {
   // Not-so-random: Prefer non-megacredit resources when available (in case there are not enough megacredits)
+  // FIXME: Overshoot non-megacredit resources if there are not enough megacredits
   let megaCredits = card ? card.calculatedCost : waitingFor.amount;
   let heat = 0;
   if (waitingFor.canUseHeat) {
