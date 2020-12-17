@@ -12,13 +12,11 @@ tasks:
       npm run start &&
       npm run start
   - name: Game
+    init: npm install
     command: >
       gp await-port 8080 &&
       sleep 2 &&
-      node start-game $(gp url 8080)
-  - name: Bot
-    init: npm install
-    command: node play-bot
+      node play-bot
 
 github:
   prebuilds:
