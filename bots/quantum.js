@@ -3,9 +3,8 @@
 
 // Quantum Bot -- heavily inspired by https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 
-// To test this bot:
-//   1. Run `node start-game`, then copy the player link
-//   2. Run `node play-bot --bot=bots/quantum.js PLAYER_LINK`
+// To test this bot, run this command:
+//   node play-bot --bot=bots/quantum
 
 // TODO: Remove
 function chooseRandomItem (items) {

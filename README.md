@@ -37,19 +37,14 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 
 > 💡 Feel free to inspect the `game` object, for example with `console.log(game)`, as it holds all the interesting details about the game in progress.
 
-4. Test your bot by starting a new game of Terraforming Mars, and make your bot play it:
+4. Test your bot by making it play a full game of Terraforming Mars:
 
-- `node start-game`: Start a new game, and outputs a player link
-- `node play-bot --bot=bots/my-bot PLAYER_LINK`: Makes your bot play the game using the player link from above
+- `node play-bot --bot=bots/my-bot`: Makes your bot play a new local solo game
 
 Here is what such a test run may look like in yout Terminal:
 
 ```bash
-$ node start-game
-Started new game. Player links:
-  - Bot (red): http://localhost:8080/player?id=6d9796440d25
-
-$ node play-bot --bot=bots/my-bot http://localhost:8080/player?id=6d9796440d25
+$ node play-bot --bot=bots/my-bot
 Bot plays: [ [ 'CrediCor' ], [ 'Solar Wind Power' ] ]
 ...
 Game ended!
@@ -71,6 +66,19 @@ Final scores:
 
 This repository comes with a few useful scripts:
 
+### `node play-bot [PLAYER_LINK]`
+
+```bash
+# Make a bot play a full solo game of Terraforming Mars
+node play-bot
+
+# Make a bot play Terraforming Mars (using a regular player link)
+node play-bot https://my-tm-server.com/player?id=123456789
+
+# Make a specific bot play Terraforming Mars
+node play-bot --bot=bots/random.js https://my-tm-server.com/player?id=123456789
+```
+
 ### `node start-game [SERVER]`
 
 ```bash
@@ -79,14 +87,7 @@ node start-game
 
 # Start a new game on any Terraforming Mars server
 node start-game https://my-tm-server.com
-```
 
-### `node play-bot PLAYER_LINK`
-
-```bash
-# Make a bot play Terraforming Mars (accepts a regular player link)
-node play-bot https://my-tm-server.com/player?id=123456789
-
-# Make a specific bot play Terraforming Mars
-node play-bot --bot=bots/random.js https://my-tm-server.com/player?id=123456789
+# Start a new local game of Terraforming Mars, but only print player links (no extra text)
+node start-game --quiet
 ```

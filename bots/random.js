@@ -1,9 +1,8 @@
 // Copyright © 2020 Jan Keromnes.
 // The following code is covered by the MIT license.
 
-// To test this bot:
-//   1. Run `node start-game`, then copy the player link
-//   2. Run `node play-bot PLAYER_LINK`
+// To test this bot, run this command:
+//   node play-bot
 
 // To implement your own bot:
 //   1. Copy 'random.js' to a new file, for example 'my-bot.js'

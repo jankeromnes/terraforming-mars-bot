@@ -3,25 +3,26 @@
 
 const minimist = require('minimist');
 const path = require('path');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 const request = require('./lib/request');
-
 const { CardFinder } = require('./terraforming-mars/build/src/CardFinder');
 const { PlayerInputTypes } = require('./terraforming-mars/build/src/PlayerInputTypes');
 
 const usage = `Usage: node play-bot PLAYER_LINK`;
 const argv = minimist(process.argv.slice(2));
-
-if (argv.help || argv._.length !== 1) {
+if (argv.help || argv._.length > 1) {
   console.log(usage);
   process.exit();
 }
 
-const playerUrl = new URL(argv._[0]);
-const serverUrl = playerUrl.origin;
-const playerId = playerUrl.searchParams.get('id');
 const cardFinder = new CardFinder();
 
 (async () => {
+  const playerUrl = new URL(argv._[0] || (await exec('node start-game --quiet')).stdout.trim());
+  const serverUrl = playerUrl.origin;
+  const playerId = playerUrl.searchParams.get('id');
+
   // Load bot script
   const bot = require('./' + path.join('.', argv.bot || 'bots/random'));
 
