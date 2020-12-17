@@ -19,3 +19,12 @@ tasks:
   - name: Bot
     init: npm install
     command: node play-bot
+
+github:
+  prebuilds:
+    master: true
+    branches: true
+    pullRequests: true
+    pullRequestsFromForks: true
+    addCheck: true
+    addComment: true
