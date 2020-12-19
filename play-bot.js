@@ -9,9 +9,16 @@ const request = require('./lib/request');
 const { CardFinder } = require('./terraforming-mars/build/src/CardFinder');
 const { PlayerInputTypes } = require('./terraforming-mars/build/src/PlayerInputTypes');
 
-const usage = `Usage: node play-bot PLAYER_LINK`;
+const usage = `USAGE
+
+    node play-bot [OPTIONS] [PLAYER_LINK]
+
+OPTIONS
+
+    -h, --help
+        Print usage information`;
 const argv = minimist(process.argv.slice(2));
-if (argv.help || argv._.length > 1) {
+if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
   process.exit();
 }
@@ -19,7 +26,11 @@ if (argv.help || argv._.length > 1) {
 const cardFinder = new CardFinder();
 
 (async () => {
-  let playerLink = argv._[0];
+  const game = await playGame(argv._[0]);
+  console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
+})();
+
+async function playGame (playerLink) {
   if (!playerLink) {
     playerLink = (await exec('node start-game --quiet')).stdout.trim();
     console.log('Auto-started new solo game! Bot player link: ' + playerLink);
@@ -52,8 +63,8 @@ const cardFinder = new CardFinder();
 
   console.log('Game ended!');
   logGameState(game);
-  logGameScore(game);
-})();
+  return game;
+}
 
 // Add additional useful information to a game's "waitingFor" object
 function annotateWaitingFor (game, waitingFor) {
@@ -104,8 +115,4 @@ function annotateCards (game, cards) {
 
 function logGameState (game) {
   console.log(`Game state (${game.players.length}p): gen=${game.generation}, temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
-}
-
-function logGameScore (game) {
-  console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
 }
