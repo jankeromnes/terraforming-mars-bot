@@ -138,7 +138,7 @@ function evaluateOption (option, game) {
     // Return the value of the best playable card
     return sortByEstimatedValue(option.cards, evaluateCard, game)[0].value;
   }
-  if (option.title.match(/Take first action of.*/)) {
+  if (option.title.message && option.title.message.match(/Take first action of.*/)) {
     // We definitely want to do that
     return 100;
   }
