@@ -77,6 +77,9 @@ node play-bot https://my-tm-server.com/player?id=123456789
 
 # Make a specific bot play Terraforming Mars
 node play-bot --bot=bots/random.js https://my-tm-server.com/player?id=123456789
+
+# See all available options and what they do
+node play-bot --help
 ```
 
 ### `node start-game [SERVER]`
@@ -90,4 +93,7 @@ node start-game https://my-tm-server.com
 
 # Start a new local game of Terraforming Mars, but only print player links (no extra text)
 node start-game --quiet
+
+# See all available options and what they do
+node start-game --help
 ```
