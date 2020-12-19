@@ -41,7 +41,7 @@ const cardFinder = new CardFinder();
     scores.push(score);
   }
   if (scores.length > 1) {
-    console.log(`---\nPlayed ${scores.length} game${scores.length === 1 ? '' : 's'}. Score summary:`);
+    console.log(`\nPlayed ${scores.length} game${scores.length === 1 ? '' : 's'}. Score summary:`);
     for (const name in scores[0]) {
       let min = scores[0][name];
       let max = scores[0][name];

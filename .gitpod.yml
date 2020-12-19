@@ -16,7 +16,7 @@ tasks:
     command: >
       gp await-port 8080 &&
       sleep 2 &&
-      node play-bot
+      node play-bot --games=5
 
 github:
   prebuilds:
