@@ -1,6 +1,6 @@
 {
   "name": "terraforming-mars-bot",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A proof-of-concept Terraforming Mars AI meant to play https://github.com/bafolts/terraforming-mars/ automatically",
   "bugs": {
     "url": "https://github.com/jankeromnes/terraforming-mars-bot/issues"
