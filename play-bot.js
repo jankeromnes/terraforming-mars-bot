@@ -16,7 +16,10 @@ const usage = `USAGE
 OPTIONS
 
     -h, --help
-        Print usage information`;
+        Print usage information
+
+    --games=NUMBER
+        Play NUMBER of games in a row, then print score statistics`;
 const argv = minimist(process.argv.slice(2));
 if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
@@ -26,8 +29,31 @@ if (argv.h || argv.help || argv._.length > 1) {
 const cardFinder = new CardFinder();
 
 (async () => {
-  const game = await playGame(argv._[0]);
-  console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
+  const scores = [];
+  const games = argv.games || 1;
+  while (scores.length < games) {
+    const game = await playGame(argv._[0]);
+    console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
+    const score = {};
+    for (const p of game.players) {
+      score[p.name] = p.victoryPointsBreakdown.total;
+    }
+    scores.push(score);
+  }
+  if (scores.length > 1) {
+    console.log(`---\nPlayed ${scores.length} game${scores.length === 1 ? '' : 's'}. Score summary:`);
+    for (const name in scores[0]) {
+      let min = scores[0][name];
+      let max = scores[0][name];
+      let total = scores.map(s => s[name]).reduce((a, b) => {
+        if (b < min) min = b;
+        if (b > max) max = b;
+        return a + b;
+      }, 0);
+      let average = Math.round(100 * total / scores.length) / 100;
+      console.log(`  - ${name}: ${average} average (${min} min, ${max} max)`);
+    }
+  }
 })();
 
 async function playGame (playerLink) {
