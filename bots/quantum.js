@@ -6,14 +6,6 @@
 // To test this bot, run this command:
 //   node play-bot --bot=bots/quantum
 
-// TODO: Remove
-function chooseRandomItem (items) {
-  return items[chooseRandomNumber(0, items.length - 1)];
-}
-function chooseRandomNumber (min, max) {
-  return min + Math.floor(Math.random() * (max - min + 1));
-}
-
 // Source: "6. Corporations" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateCorporation (corporation, game) {
   switch (corporation.name) {
@@ -136,17 +128,77 @@ function evaluateCard (card, game) {
   return score;
 }
 
+// Source: https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
+function evaluateOption (option, game) {
+  if (option.playerInputType === 'OR_OPTIONS') {
+    // Return the value of the best sub-option
+    return sortByEstimatedValue(option.options, evaluateOption, game)[0].value
+  }
+  if (option.playerInputType === 'SELECT_HOW_TO_PAY_FOR_CARD') {
+    // Return the value of the best playable card
+    return sortByEstimatedValue(option.cards, evaluateCard, game)[0].value;
+  }
+  if (option.title.match(/Take first action of.*/)) {
+    // We definitely want to do that
+    return 100;
+  }
+  if (option.title.match(/Convert \d+ plants into greenery/)) {
+    // Source: "2.1 Card Advantage"
+    return 19;
+  }
+  if (option.title === 'Convert 8 heat into temperature') {
+    // Source: "1.1 Standard Cards"
+    return 10;
+  }
+  if (option.title === 'Power plant (11 MC)') {
+    // Source: "2.1 Card Advantage"
+    return -4;
+  }
+  if (option.title === 'Asteroid (14 MC)') {
+    // Source: "2.1 Card Advantage"
+    return -4;
+  }
+  if (option.title === 'Aquifer (18 MC)') {
+    // Source: "2.1 Card Advantage"
+    return -4;
+  }
+  if (option.title === 'Greenery (23 MC)') {
+    // Source: "2.1 Card Advantage"
+    return -4;
+  }
+  if (option.title === 'City (25 MC)') {
+    // Source: "2.1 Card Advantage"
+    return -4;
+  }
+  if (option.title === 'Pass for this generation') {
+    // Only pass when no "good" choices remain
+    return -100;
+  }
+  if (option.title === 'Sell patents') {
+    // Don't sell patents
+    return -100;
+  }
+  console.error(new Error('Could not evaluate option! ' + JSON.stringify(option, null, 2)));
+  return -100; // Don't play options we don't understand, except if there is no other choice.
+}
+
+function sortByEstimatedValue (items, evaluator, game) {
+  // Evaluate all items
+  items.forEach(item => {
+    if (!('value' in item)) {
+      item.value = evaluator(item, game);
+    }
+  });
+  // Sort items by estimated value
+  return [...items].sort((a, b) => a.value > b.value ? -1 : 1);
+}
+
 // Choose corporation and initial cards
 exports.playInitialResearchPhase = async (game, availableCorporations, availableCards) => {
   console.log(availableCorporations, availableCards, game);
 
   // Sort corporation by estimated value
-  const sortedCorporations = availableCorporations
-    .map(c => {
-      c.value = evaluateCorporation(c, game);
-      return c;
-    })
-    .sort((a, b) => a.value > b.value ? -1 : 1);
+  const sortedCorporations = sortByEstimatedValue(availableCorporations, evaluateCorporation, game);
 
   // Pick the best available corporation
   const corporation = sortedCorporations[0];
@@ -184,6 +236,14 @@ function chooseHowToPay (game, waitingFor, card) {
   return { heat, megaCredits, steel, titanium, microbes, floaters, isResearchPhase };
 }
 
+// TODO: Remove
+function chooseRandomItem (items) {
+  return items[chooseRandomNumber(0, items.length - 1)];
+}
+function chooseRandomNumber (min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
 // Play a turn of Terraforming Mars
 exports.play = async (game, waitingFor) => {
   console.log('Game is waiting for:', JSON.stringify(waitingFor, null, 2));
@@ -196,7 +256,11 @@ exports.play = async (game, waitingFor) => {
       return actions;
 
     case 'OR_OPTIONS':
-      const option = chooseRandomItem(waitingFor.options);
+      // Sort playable options by estimated value
+      const sortedOptions = sortByEstimatedValue(waitingFor.options, evaluateOption, game);
+
+      // Pick the best playable option
+      const option = sortedOptions[0];
       const choice = String(waitingFor.options.indexOf(option));
       return [[choice]].concat(await exports.play(game, option));
 
@@ -204,13 +268,8 @@ exports.play = async (game, waitingFor) => {
       return [[String(chooseRandomNumber(waitingFor.min, waitingFor.max))]];
 
     case 'SELECT_CARD':
-      // Pick the best cards
-      const sortedCards = waitingFor.cards
-        .map(c => {
-          c.value = evaluateCard(c, game);
-          return c;
-        })
-        .sort((a, b) => a.value > b.value ? -1 : 1);
+      // Pick the best available cards
+      const sortedCards = sortByEstimatedValue(waitingFor.cards, evaluateCard, game);
       let numberOfCards = waitingFor.minCardsToSelect;
       while (numberOfCards < waitingFor.maxCardsToSelect && sortedCards[numberOfCards].value > 3) {
         numberOfCards++;
