@@ -19,7 +19,10 @@ OPTIONS
         Print usage information
 
     --games=NUMBER
-        Play NUMBER of games in a row, then print score statistics`;
+        Play NUMBER of games in a row, then print score statistics
+
+    --ignore-errors
+        If an error occurs during a game, ignore it and just play another game`;
 const argv = minimist(process.argv.slice(2));
 if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
@@ -32,13 +35,20 @@ const cardFinder = new CardFinder();
   const scores = [];
   const games = argv.games || 1;
   while (scores.length < games) {
-    const game = await playGame(argv._[0]);
-    console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
-    const score = {};
-    for (const p of game.players) {
-      score[p.name] = p.victoryPointsBreakdown.total;
+    try {
+      const game = await playGame(argv._[0]);
+      console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
+      const score = {};
+      for (const p of game.players) {
+        score[p.name] = p.victoryPointsBreakdown.total;
+      }
+      scores.push(score);
+    } catch (error) {
+      if (argv['ignore-errors']) {
+        continue;
+      }
+      throw error;
     }
-    scores.push(score);
   }
   if (scores.length > 1) {
     console.log(`\nPlayed ${scores.length} game${scores.length === 1 ? '' : 's'}. Score summary:`);
@@ -51,7 +61,7 @@ const cardFinder = new CardFinder();
         return a + b;
       }, 0);
       let average = Math.round(100 * total / scores.length) / 100;
-      console.log(`  - ${name}: ${average} average (${min} min, ${max} max)`);
+      console.log(`  - ${name}: average ${average} points (min ${min}, max ${max})`);
     }
   }
 })();
