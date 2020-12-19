@@ -19,7 +19,12 @@ if (argv.help || argv._.length > 1) {
 const cardFinder = new CardFinder();
 
 (async () => {
-  const playerUrl = new URL(argv._[0] || (await exec('node start-game --quiet')).stdout.trim());
+  let playerLink = argv._[0];
+  if (!playerLink) {
+    playerLink = (await exec('node start-game --quiet')).stdout.trim();
+    console.log('Auto-started new solo game! Bot player link: ' + playerLink);
+  }
+  const playerUrl = new URL(playerLink);
   const serverUrl = playerUrl.origin;
   const playerId = playerUrl.searchParams.get('id');
 
