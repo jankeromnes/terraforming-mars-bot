@@ -77,8 +77,8 @@ const gameSettings = {
 
   // Add player settings
   const players = argv.players ? argv.players.split(',') : [ 'Bot' ];
-  if (players.length < 1 || players.length >= gamePlayerColors.length) {
-    throw new Error('Unsupported number of players: ' + players.length);
+  if (players.length < 1 || players.length > gamePlayerColors.length) {
+    throw new Error(`Unsupported number of players: ${players.length} (should be between 1 and ${gamePlayerColors.length})`);
   }
   for (const playerName of players) {
     const playerSettings = JSON.parse(JSON.stringify(gamePlayerSettings));
