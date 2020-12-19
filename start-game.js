@@ -5,9 +5,19 @@ const fs = require('fs');
 const minimist = require('minimist');
 const request = require('./lib/request');
 
-const usage = `Usage: node start-game [SERVER]`;
+const usage = `USAGE
+
+    node start-game [OPTIONS] [SERVER]
+
+OPTIONS
+
+    -h, --help
+        Print usage information
+
+    -q, --quiet
+        Only print player links (no extra text)`;
 const argv = minimist(process.argv.slice(2));
-if (argv.help || argv._.length > 1) {
+if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
   process.exit();
 }
