@@ -182,6 +182,28 @@ function evaluateOption (option, game) {
   return -100; // Don't play options we don't understand, except if there is no other choice.
 }
 
+// Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
+function evaluateSpace (space, game) {
+  // TODO: Also evaluate adjacent bonuses (points, megacredits, etc)
+  let score = 0;
+  const bonusValue = {
+    'TITANIUM': 2,
+    'STEEL': 2,
+    'PLANT': 2,
+    'DRAW_CARD': 2,
+    'HEAT': 1,
+    'OCEAN': 14,
+    'MEGACREDITS': 1,
+  }
+  for (const bonus of space.placementBonus) {
+    if (!(bonus in bonusValue)) {
+      throw new Error(`Unsupported map placement bonus: ${bonus} in ${JSON.stringify(space, null, 2)}`);
+    }
+    score += bonusValue[bonus];
+  }
+  return score;
+}
+
 function sortByEstimatedValue (items, evaluator, game) {
   // Evaluate all items
   items.forEach(item => {
@@ -290,8 +312,10 @@ exports.play = async (game, waitingFor) => {
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
 
     case 'SELECT_SPACE':
-      const space = chooseRandomItem(waitingFor.availableSpaces);
-      return [[space]];
+      // Pick the best available space
+      const spaces = waitingFor.availableSpaces.map(id => game.spaces.find(s => s.id === id));
+      const sortedSpaces = sortByEstimatedValue(spaces, evaluateSpace, game);
+      return [[sortedSpaces[0].id]];
 
     case 'SELECT_DELEGATE':
       throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
