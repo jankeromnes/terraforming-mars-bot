@@ -8,6 +8,7 @@ const exec = util.promisify(require('child_process').exec);
 const request = require('./lib/request');
 const { CardFinder } = require('./terraforming-mars/build/src/CardFinder');
 const { PlayerInputTypes } = require('./terraforming-mars/build/src/PlayerInputTypes');
+const { SpaceBonus } = require('./terraforming-mars/build/src/SpaceBonus');
 
 const usage = `USAGE
 
@@ -95,6 +96,7 @@ async function playGame (playerLink) {
   // Play the game until the end
   while (game.phase !== 'end') {
     annotateWaitingFor(game, game.waitingFor);
+    annotateMapSpaces(game);
     logGameState(game);
     move = await bot.play(game, game.waitingFor);
     console.log('Bot plays:', move);
@@ -151,6 +153,13 @@ function annotateCards (game, cards) {
       card.metadata = projectCard.metadata;
     }
   }
+}
+
+// Add additional useful information to map spaces
+function annotateMapSpaces (game) {
+  game.spaces.forEach(space => {
+    space.placementBonus = space.bonus.map(b => SpaceBonus[b]);
+  });
 }
 
 function logGameState (game) {
