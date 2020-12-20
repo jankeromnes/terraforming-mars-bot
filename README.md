@@ -39,12 +39,12 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 
 4. Test your bot by making it play a full game of Terraforming Mars:
 
-- `node play-bot --bot=my-bot`: Makes your bot play a new local solo game
+- `node play-bot --bot=my-bot.js`: Makes your bot play a new local solo game
 
 Here is what such a test run may look like in yout Terminal:
 
 ```bash
-$ node play-bot --bot=my-bot
+$ node play-bot --bot=my-bot.js
 Bot plays: [ [ 'CrediCor' ], [ 'Solar Wind Power' ] ]
 ...
 Game ended!
