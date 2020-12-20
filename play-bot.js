@@ -18,6 +18,9 @@ OPTIONS
     -h, --help
         Print usage information
 
+    --bot=BOT
+        Play with a specific bot script from the bots/ directory (default is --bot=random)
+
     --games=NUMBER
         Play NUMBER of games in a row, then print score statistics
 
@@ -76,7 +79,7 @@ async function playGame (playerLink) {
   const playerId = playerUrl.searchParams.get('id');
 
   // Load bot script
-  const bot = require('./' + path.join('.', argv.bot || 'bots/random'));
+  const bot = require('./' + path.join('bots', argv.bot || 'random'));
 
   // Initial research phase
   let game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);

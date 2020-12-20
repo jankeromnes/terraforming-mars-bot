@@ -4,7 +4,7 @@
 // Quantum Bot -- heavily inspired by https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 
 // To test this bot, run this command:
-//   node play-bot --bot=bots/quantum
+//   node play-bot --bot=quantum
 
 // Source: "6. Corporations" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateCorporation (corporation, game) {

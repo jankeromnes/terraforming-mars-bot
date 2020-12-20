@@ -39,12 +39,12 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 
 4. Test your bot by making it play a full game of Terraforming Mars:
 
-- `node play-bot --bot=bots/my-bot`: Makes your bot play a new local solo game
+- `node play-bot --bot=my-bot`: Makes your bot play a new local solo game
 
 Here is what such a test run may look like in yout Terminal:
 
 ```bash
-$ node play-bot --bot=bots/my-bot
+$ node play-bot --bot=my-bot
 Bot plays: [ [ 'CrediCor' ], [ 'Solar Wind Power' ] ]
 ...
 Game ended!
@@ -76,7 +76,7 @@ node play-bot
 node play-bot https://my-tm-server.com/player?id=123456789
 
 # Make a specific bot play Terraforming Mars
-node play-bot --bot=bots/random.js https://my-tm-server.com/player?id=123456789
+node play-bot --bot=random https://my-tm-server.com/player?id=123456789
 
 # See all available options and what they do
 node play-bot --help

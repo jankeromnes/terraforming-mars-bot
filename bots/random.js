@@ -8,7 +8,7 @@
 //   1. Copy 'random.js' to a new file, for example 'my-bot.js'
 //   2. Improve your bot (for example, replace every call to 'chooseRandomItem' with your own logic)
 //   3. Run `node start-game`, then copy the player link
-//   4. Run `node play-bot --bot=bots/my-bot.js PLAYER_LINK`
+//   4. Run `node play-bot --bot=my-bot.js PLAYER_LINK`
 
 // Good luck & have fun!
 
