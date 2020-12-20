@@ -70,8 +70,9 @@ const cardFinder = new CardFinder();
 })();
 
 async function playGame (playerLink) {
+  const botPath = argv.bot || 'random';
   if (!playerLink) {
-    playerLink = (await exec('node start-game --quiet')).stdout.trim();
+    playerLink = (await exec(`node start-game --players=${botPath} --quiet`)).stdout.trim();
     console.log('Auto-started new solo game! Bot player link: ' + playerLink);
   }
   const playerUrl = new URL(playerLink);
@@ -79,7 +80,7 @@ async function playGame (playerLink) {
   const playerId = playerUrl.searchParams.get('id');
 
   // Load bot script
-  const bot = require('./' + path.join('bots', argv.bot || 'random'));
+  const bot = require('./' + path.join('bots', botPath));
 
   // Initial research phase
   let game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
