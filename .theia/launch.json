@@ -1,0 +1,20 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Random Bot",
+      "program": "${workspaceFolder}/play-bot.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Quantum Bot",
+      "program": "${workspaceFolder}/play-bot.js",
+      "args": [ "--bot=quantum" ]
+    }
+  ]
+}
