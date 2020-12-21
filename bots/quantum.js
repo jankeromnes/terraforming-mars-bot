@@ -57,6 +57,7 @@ function evaluateCard (card, game) {
         // Bonus
         {
           'cards': 2,
+          'city': 9, // Source: "4.5 Points from City"
           'heat': 1,
           'megacredits': 1,
           'oceans': 14,
