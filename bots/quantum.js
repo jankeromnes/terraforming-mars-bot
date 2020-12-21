@@ -139,6 +139,11 @@ function evaluateOption (option, game) {
     // Return the value of the best playable card
     return sortByEstimatedValue(option.cards, evaluateCard, game)[0].value;
   }
+  if (option.playerInputType === 'SELECT_SPACE') {
+    // Return the value of the best available space
+    const spaces = option.availableSpaces.map(id => game.spaces.find(s => s.id === id));
+    return sortByEstimatedValue(spaces, evaluateSpace, game)[0].value;
+  }
   if (option.title.message && option.title.message.match(/Take first action of.*/)) {
     // We definitely want to do that
     return 100;
