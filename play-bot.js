@@ -129,8 +129,8 @@ function annotateWaitingFor (game, waitingFor) {
 // Add additional useful information to cards
 function annotateCards (game, cards) {
   for (const card of cards) {
-    // For some reason, card.calculatedCost is always 0.
-    // But we get this info from the dealt project cards or cards in hand.
+    // BUG: For some reason, card.calculatedCost is always 0.
+    // But we can get this info from the dealt project cards or cards in hand.
     const cardInHand = game.cardsInHand.find(c => c.name === card.name);
     if (card.calculatedCost === 0 && cardInHand && cardInHand.calculatedCost) {
       card.calculatedCost = cardInHand.calculatedCost;
@@ -146,6 +146,11 @@ function annotateCards (game, cards) {
       continue;
     }
     card.cardType = projectCard.cardType;
+    // If we still don't know the card's cost, get it from the reference card.
+    /* FIXME: Why does this reduce the average score of Quantum Bot by 7 points?
+    if (card.calculatedCost === 0) {
+      card.calculatedCost = projectCard.cost;
+    } */
     if (!('tags' in card)) {
       card.tags = projectCard.tags;
     }
