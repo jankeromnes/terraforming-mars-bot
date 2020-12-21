@@ -131,6 +131,7 @@ function evaluateCard (card, game) {
 
 // Source: https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateOption (option, game) {
+  let match = null;
   if (option.playerInputType === 'OR_OPTIONS') {
     // Return the value of the best sub-option
     return sortByEstimatedValue(option.options, evaluateOption, game)[0].value
@@ -148,7 +149,7 @@ function evaluateOption (option, game) {
     // We definitely want to do that
     return 100;
   }
-  if (option.title.match(/Convert \d+ plants into greenery/)) {
+  if (match = option.title.match(/Convert (\d+) plants into greenery/)) {
     // Source: "2.1 Card Advantage"
     return 19;
   }
@@ -156,25 +157,30 @@ function evaluateOption (option, game) {
     // Source: "1.1 Standard Cards"
     return 10;
   }
-  if (option.title === 'Power plant (11 MC)') {
-    // Source: "2.1 Card Advantage"
-    return -4;
+  if (match = option.title.match(/Power plant \((\d+) MC\)/)) {
+    const cost = parseInt(match[1], 10)
+    // Source: "1.1 Standard Cards"
+    return 7 - cost;
   }
-  if (option.title === 'Asteroid (14 MC)') {
-    // Source: "2.1 Card Advantage"
-    return -4;
+  if (match = option.title.match(/Asteroid \((\d+) MC\)/)) {
+    const cost = parseInt(match[1], 10);
+    // Source: "1.1 Standard Cards"
+    return 10 - cost;
   }
-  if (option.title === 'Aquifer (18 MC)') {
-    // Source: "2.1 Card Advantage"
-    return -4;
+  if (match = option.title.match(/Aquifer \((\d+) MC\)/)) {
+    const cost = parseInt(match[1], 10);
+    // Source: "1.1 Standard Cards"
+    return 14 - cost;
   }
-  if (option.title === 'Greenery (23 MC)') {
+  if (match = option.title.match(/Greenery \((\d+) MC\)/)) {
+    const cost = parseInt(match[1], 10);
     // Source: "2.1 Card Advantage"
-    return -4;
+    return 19 - cost;
   }
-  if (option.title === 'City (25 MC)') {
-    // Source: "2.1 Card Advantage"
-    return -4;
+  if (match = option.title.match(/City \((\d+) MC\)/)) {
+    const cost = parseInt(match[1], 10);
+    // Source: "4.5 Points from City"
+    return 9 - cost;
   }
   if (option.title === 'Pass for this generation') {
     // Only pass when no "good" choices remain
