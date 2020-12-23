@@ -61,6 +61,7 @@ function evaluateCard (card, game) {
           'heat': 1,
           'megacredits': 1,
           'oceans': 14,
+          'oxygen': 10,
           'plants': 2,
           'steel': 2,
           'temperature': 10,
@@ -303,6 +304,7 @@ exports.play = async (game, waitingFor) => {
 
     case 'SELECT_CARD':
       // Pick the best available cards
+      // TODO reverse when "title": "Select a card to discard" / "buttonLabel": "Discard",
       const sortedCards = sortByEstimatedValue(waitingFor.cards, evaluateCard, game);
       let numberOfCards = waitingFor.minCardsToSelect;
       while (numberOfCards < waitingFor.maxCardsToSelect && sortedCards[numberOfCards].value > 3) {
