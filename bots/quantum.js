@@ -189,7 +189,7 @@ function evaluateOption (option, game) {
   }
   if (option.title === 'Sell patents') {
     // Don't sell patents
-    return -100;
+    return -101;
   }
   console.error(new Error('Could not evaluate option! ' + JSON.stringify(option, null, 2)));
   return -100; // Don't play options we don't understand, except if there is no other choice.
@@ -225,7 +225,15 @@ function sortByEstimatedValue (items, evaluator, game) {
     }
   });
   // Sort items by estimated value
-  return [...items].sort((a, b) => a.value > b.value ? -1 : 1);
+  return shuffle([...items]).sort((a, b) => a.value > b.value ? -1 : 1);
+}
+
+function shuffle (items) {
+    for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+    }
+    return items;
 }
 
 // Choose corporation and initial cards
