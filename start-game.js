@@ -39,7 +39,7 @@ const gameSettings = {
     "players": [],
     "corporateEra": true,
     "prelude": false,
-    "draftVariant": true,
+    "draftVariant": false,
     "showOtherPlayersVP": false,
     "venusNext": false,
     "colonies": false,
