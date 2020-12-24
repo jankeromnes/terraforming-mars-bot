@@ -40,7 +40,7 @@ const cardFinder = new CardFinder();
   const games = argv.games || 1;
   while (scores.length < games) {
     try {
-      const game = await playGame(argv._[0]);
+      const game = await playGame(argv._[0], argv.bot);
       console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
       const score = {};
       for (const p of game.players) {
@@ -70,8 +70,10 @@ const cardFinder = new CardFinder();
   }
 })();
 
-async function playGame (playerLink) {
-  const botPath = argv.bot || 'random';
+async function playGame (playerLink, botPath) {
+  if  (!botPath) {
+    botPath = 'random';
+  }
   if (!playerLink) {
     playerLink = (await exec(`node start-game --players=${botPath} --quiet`)).stdout.trim();
     console.log('Auto-started new solo game! Bot player link: ' + playerLink);
