@@ -149,6 +149,10 @@ function evaluateOption (option, game) {
     // We definitely want to do that
     return 100;
   }
+  if (match = option.buttonLabel.match(/Claim - \((.*)\)/)) {
+    // Source: "1.1 Standard Cards"
+    return 25;
+  }
   if (match = option.title.match(/Convert (\d+) plants into greenery/)) {
     // Source: "2.1 Card Advantage"
     return 19;
