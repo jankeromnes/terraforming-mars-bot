@@ -84,14 +84,13 @@ async function playGame (playerLink) {
   const bot = require('./' + path.join('bots', botPath));
 
   // Initial research phase
-  let game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
+  let game = await waitForTurn(serverUrl, playerId);
   logGameState(game);
   const availableCorporations = game.waitingFor.options[0].cards;
   const availableCards = game.waitingFor.options[1].cards;
   annotateCards(game, availableCards);
   let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
-  console.log('Bot plays:', move);
-  game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
+  game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
 
   // Play the game until the end
   while (game.phase !== 'end') {
@@ -100,11 +99,25 @@ async function playGame (playerLink) {
     logGameState(game);
     move = await bot.play(game, game.waitingFor);
     console.log('Bot plays:', move);
-    game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
+    game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
   }
 
   console.log('Game ended!');
   logGameState(game);
+  return game;
+}
+
+async function playMoveAndWaitForTurn (serverUrl, playerId, move) {
+  console.log('Bot plays:', move);
+  let game = await request('POST', `${serverUrl}/player/input?id=${playerId}`, move);
+  return await waitForTurn(serverUrl, playerId, game);
+}
+
+async function waitForTurn (serverUrl, playerId, game) {
+  while (!game || !('waitingFor' in game) && game.phase !== 'end') {
+    await new Promise(resolve => setTimeout(resolve, 30));
+    game = await request('GET', `${serverUrl}/api/player?id=${playerId}`);
+  }
   return game;
 }
 
