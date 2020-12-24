@@ -256,7 +256,6 @@ exports.playInitialResearchPhase = async (game, availableCorporations, available
 // Choose how to pay for a given card (or amount)
 function chooseHowToPay (game, waitingFor, card) {
   // Prefer non-megacredit resources when available (in case there are not enough megacredits)
-  // FIXME: Overshoot non-megacredit resources if there are not enough megacredits
   let megaCredits = card ? card.calculatedCost : waitingFor.amount;
   let heat = 0;
   if (waitingFor.canUseHeat) {
@@ -267,11 +266,21 @@ function chooseHowToPay (game, waitingFor, card) {
   if ((waitingFor.canUseSteel || card && card.tags.includes('building'))) {
     steel = Math.min(game.steel, Math.floor(megaCredits / game.steelValue));
     megaCredits -= steel * game.steelValue;
+    // If there aren't enough mega credits left, we may need to overshoot on steel.
+    if (game.megaCredits < megaCredits  && game.steel > steel) {
+      steel++;
+      megaCredits = Math.max(0, megaCredits - game.steelValue);
+    }
   }
   let titanium = 0;
   if ((waitingFor.canUseTitanium || card && card.tags.includes('space'))) {
     titanium = Math.min(game.titanium, Math.floor(megaCredits / game.titaniumValue));
     megaCredits -= titanium * game.titaniumValue;
+    // If there still aren't enough mega credits left, we may need to overshoot on titanium.
+    if (game.megaCredits < megaCredits  && game.titanium > titanium) {
+      titanium++;
+      megaCredits = Math.max(0, megaCredits - game.titaniumValue);
+    }
   }
   let microbes = 0;
   let floaters = 0;
