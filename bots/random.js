@@ -101,7 +101,7 @@ exports.play = async (game, waitingFor) => {
       return [['1']];
 
     case 'SELECT_PLAYER':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      return [[chooseRandomItem(waitingFor.players)]];
 
     case 'SELECT_SPACE':
       const space = chooseRandomItem(waitingFor.availableSpaces);

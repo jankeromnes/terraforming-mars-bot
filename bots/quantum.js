@@ -50,7 +50,6 @@ function evaluateCard (card, game) {
   }
   // HACK: Guess card effects by parsing the renderData (will definitely break unless tested)
   if (card.metadata && card.metadata.renderData) {
-    console.log(card);
     try {
       let effectScore = 0;
       let effectValues = [
@@ -340,7 +339,7 @@ exports.play = async (game, waitingFor) => {
       return [['1']];
 
     case 'SELECT_PLAYER':
-      throw new Error(`Unsupported player input type! ${waitingFor.playerInputType} (${waitingFor.inputType})`);
+      return [[chooseRandomItem(waitingFor.players)]];
 
     case 'SELECT_SPACE':
       // Pick the best available space
