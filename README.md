@@ -4,6 +4,8 @@
 
 A proof-of-concept Terraforming Mars AI meant to play https://github.com/bafolts/terraforming-mars/ automatically.
 
+GOODBYE
+
 ## How to run this
 
 Open this repository in [Gitpod](https://www.gitpod.io), a free online development environment:
