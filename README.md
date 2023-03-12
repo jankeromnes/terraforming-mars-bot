@@ -14,6 +14,22 @@ This will give you a cloud workspace containing this repository already set-up a
 
 <img alt="terraforming-mars-bot-in-gitpod" width="700" src="https://user-images.githubusercontent.com/599268/99880174-16e3e680-2c12-11eb-9360-5c6a7ea7ab4b.png">
 
+## To run locally
+Clone the repo and then run the following commands from the cloned folder
+`npm install`
+`tsv`
+
+You also need to run the following commands to start the terraforming mars server
+`git submodule update`
+`cd .\terraforming-mars`
+`npm install`
+`npm run build`
+
+if you are using a version of Node higher than 16 you might get this error `Error: error:0308010C:digital envelope routines::unsupported` during the build you will need to set an environment variable as follows
+`$env:NODE_OPTIONS = "--openssl-legacy-provider"`
+
+`npm run start`
+
 ## How to implement your own bot
 
 1. Feel free to fork this repository, or to contribute your own bot here ([Pull Requests](https://github.com/jankeromnes/terraforming-mars-bot/pulls) welcome!)
@@ -62,6 +78,9 @@ Final scores:
 > - Click on the first item that appeared in your Network panel (looks like `/input`), and display the request's JSON payload
 > - Then, compare what your bot tried to play with what you manually played -- this should tell you what your bot should do differently
 
+### Debugging in VSCode
+If you open VSCode at the root of the repo you should just be able to press F5 and select 'Launch Program' to launch the bot in the debugger.  You can then set breakpoints in the ts files.  You can view the console output in the debug console.
+
 ## Helper scripts
 
 This repository comes with a few useful scripts:
@@ -69,21 +88,18 @@ This repository comes with a few useful scripts:
 ### `node play-bot [PLAYER_LINK]`
 
 ```bash
-# Make a bot play a full solo game of Terraforming Mars
+# Make the default bot play a full solo game of Terraforming Mars on the local host
 node play-bot
 
-# Make a bot play Terraforming Mars (using a regular player link)
-node play-bot https://my-tm-server.com/player?id=123456789
-
-# Make a specific bot play Terraforming Mars
-node play-bot --bot=random https://my-tm-server.com/player?id=123456789
+# Make a specific bot join an existing game of Terraforming Mars as the given player
+node play-bot --bot=random --server=https://my-tm-server.com --player=123456789
 
 # See all available options and what they do
 node play-bot --help
 ```
 
 ### `node start-game [SERVER]`
-
+Note: this section currently isn't working
 ```bash
 # Start a new local game of Terraforming Mars (outputs a player link)
 node start-game

@@ -2,6 +2,7 @@
   "name": "terraforming-mars-bot",
   "version": "1.0.0",
   "description": "A proof-of-concept Terraforming Mars AI meant to play https://github.com/bafolts/terraforming-mars/ automatically",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/jankeromnes/terraforming-mars-bot/issues"
   },
@@ -18,7 +19,13 @@
     "release": "npm version patch && git push origin master --tags"
   },
   "dependencies": {
-    "minimist": "1.2.5"
+    "minimist": "1.2.5",
+    "node-fetch": "^3.3.1",
+    "typescript": "^4.9.5"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^18.15.0",
+    "@types/node-fetch": "^2.6.2"
+  }
 }

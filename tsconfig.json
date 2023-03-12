@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "outDir": "./built",
+      "target": "ES2022",
+      "module": "Node16",
+      "moduleResolution": "node16",
+      "allowSyntheticDefaultImports": true,
+      "sourceMap": true,
+    },
+    "include": [
+        "bots/**/*.ts",
+        "models/**/*.ts",
+        "play-bot.ts",
+        "start-game.ts"
+    ]
+  }
