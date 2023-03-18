@@ -1,50 +1,71 @@
 // Copyright © 2020 Jan Keromnes.
 // The following code is covered by the MIT license.
 
-import { Game } from "./models/game.js";
-
-import fetch from 'node-fetch';
+import type { NewGameConfig, NewPlayerModel } from './terraforming-mars/src/common/game/NewGameConfig.js'
+import { BoardName } from './terraforming-mars/src/common/boards/BoardName.js';
+import type { SimpleGameModel } from './terraforming-mars/src/common/models/SimpleGameModel.js'
+import { Color } from './terraforming-mars/src/common/color.js'
+import { RandomMAOptionType } from './terraforming-mars/src/common/ma/RandomMAOptionType.js';
+import { AgendaStyle } from './terraforming-mars/src/common/turmoil/Types.js';
 
 // Game settings templates
 const gamePlayerColors = [ 'red', 'green', 'yellow', 'blue', 'black', 'purple' ];
-const gamePlayerSettings = {
-    "index": 1,
-    "name": "Bot",
-    "color": "red",
-    "beginner": false,
-    "handicap": 0,
-    "first": false
+const gamePlayerSettings: NewPlayerModel = {
+    index: 1,
+    name: "Bot",
+    color: Color.RED,
+    beginner: false,
+    handicap: 0,
+    first: false
 };
-const gameSettings = {
-    "players": [],
-    "corporateEra": true,
-    "prelude": false,
-    "draftVariant": false,
-    "showOtherPlayersVP": false,
-    "venusNext": false,
-    "colonies": false,
-    "turmoil": false,
-    "customCorporationsList": [],
-    "customColoniesList": [],
-    "cardsBlackList": [],
-    "board": "tharsis",
-    "seed": 0.28529731680252757,
-    "solarPhaseOption": false,
-    "promoCardsOption": false,
-    "communityCardsOption": false,
-    "aresExtension": false,
-    "undoOption": false,
-    "fastModeOption": false,
-    "removeNegativeGlobalEventsOption": false,
-    "includeVenusMA": true,
-    "startingCorporations": 2,
-    "soloTR": false,
-    "initialDraft": false,
-    "randomMA": "No randomization",
-    "shuffleMapOption": false,
-    "beginnerOption": false,
-    "randomFirstPlayer": true,
-    "requiresVenusTrackCompletion": false
+const gameSettings: NewGameConfig = {
+  players: [],
+  corporateEra: true,
+  prelude: false,
+  draftVariant: false,
+  showOtherPlayersVP: false,
+  venusNext: false,
+  colonies: false,
+  turmoil: false,
+  customCorporationsList: [],
+  customColoniesList: [],
+  board: BoardName.THARSIS,
+  seed: 0.28529731680252757,
+  solarPhaseOption: false,
+  promoCardsOption: false,
+  communityCardsOption: false,
+  aresExtension: false,
+  politicalAgendasExtension: AgendaStyle.STANDARD,
+  moonExpansion: false,
+  pathfindersExpansion: false,
+  undoOption: false,
+  showTimers: false,
+  fastModeOption: false,
+  removeNegativeGlobalEventsOption: false,
+  includeVenusMA: true,
+  includeFanMA: false,
+  startingCorporations: 2,
+  soloTR: false,
+  initialDraft: false,
+  corporationsDraft: false,
+  randomMA: RandomMAOptionType.NONE,
+  shuffleMapOption: false,
+  randomFirstPlayer: true,
+  requiresVenusTrackCompletion: false,
+  requiresMoonTrackCompletion: false,
+  moonStandardProjectVariant: false,
+  altVenusBoard: false,
+  escapeVelocityMode: false,
+  twoCorpsVariant: false,
+  ceoExtension: false,
+  customCeos: [],
+  startingCeos: 3,
+  clonedGamedId: undefined,
+  bannedCards: [],
+  customPreludes: [],
+  escapeVelocityThreshold: 0,
+  escapeVelocityPeriod: 0,
+  escapeVelocityPenalty: 0
 };
 
 export async function startGame(players: string[], serverUrl: string, quiet:boolean) {
@@ -69,7 +90,8 @@ export async function startGame(players: string[], serverUrl: string, quiet:bool
 
   // Start the game
   const response = await fetch(`${serverUrl}/game`, {method: 'PUT', body: JSON.stringify(settings)});
-  const game = (await response.json()) as Game;
+  const responseText = await response.text()
+  const game = JSON.parse(responseText) as SimpleGameModel;
   if (!quiet) {
     console.log('Started new game. Player links:');
   }

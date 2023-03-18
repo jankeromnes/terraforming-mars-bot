@@ -1,12 +1,11 @@
 // Copyright © 2020 Jan Keromnes.
 // The following code is covered by the MIT license.
-import { Game } from "./models/game.js"
-
-
-import minimist from 'minimist';
-import fetch from 'node-fetch';
-import path from "path";
+import * as minim from 'minimist';
+//import path from "path";
 import { startGame } from "./start-game.js";
+import type { InputResponse } from "./terraforming-mars/src/common/inputs/InputResponse.js";
+import type { PlayerViewModel } from './terraforming-mars/src/common/models/PlayerModel.js'
+import { Phase } from './terraforming-mars/src/common/Phase.js';
 
 const usage = `USAGE
 
@@ -31,19 +30,19 @@ OPTIONS
 
     --ignore-errors
         If an error occurs during a game, ignore it and just play another game`;
-const argv = minimist(process.argv.slice(2));
+const playGames = async function() {
+const argv = minim(process.argv.slice(2));
 if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
   process.exit();
 }
-
 const scores: {}[] = [];
 const trs: number[] = []
 const finalStates: string[] = [];
-const games = argv.games || 1;
+const games = argv.games ?? 1;
 while (scores.length < games) {
-  try {
-    const game = await playGame(argv.bot ?? 'quantum', argv.server?? 'http://localhost:8080', argv.playerId);
+try {
+    const game = await playGame(argv.bot ?? 'quantum', argv.server ?? 'http://localhost:8080', argv.playerId);
     console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
     const score = {};
     for (const p of game.players) {
@@ -52,13 +51,13 @@ while (scores.length < games) {
     scores.push(score);
     if (game.players.length === 1) {
       trs.push(game.players[0].victoryPointsBreakdown.terraformRating);
-      finalStates.push(`temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}`);
+      finalStates.push(`temp=${game.game.temperature}, oxy=${game.game.oxygenLevel}, oceans=${game.game.oceans}`);
     }
-  } catch (error) {
-    if (argv['ignore-errors']) {
-      continue;
-    }
-    throw error;
+} catch (error) {
+   if (argv['ignore-errors']) {
+     continue;
+   }
+   throw error;
   }
 }
 if (scores.length > 1) {
@@ -88,15 +87,18 @@ if (scores.length > 1) {
     finalStates.forEach(game => console.log(game));
   }
 }
+}
+
+playGames();
 
 async function playGame (botPath: string, serverUrl: string, playerId?: string) {
   playerId = playerId ?? (await startGame([botPath], serverUrl, true))[0].id;
 
   // Load bot script
-  const bot = await import('./' + path.join('bots', botPath + '.js'));
+  const bot = await import(`./bots/${botPath}.js`);
 
   // Initial research phase
-  let game = await waitForTurn(serverUrl, playerId);
+  let game = await waitForTurn(serverUrl, playerId, undefined);
   logGameState(game);
   if (game.waitingFor.options === undefined) {
     throw new Error("There are no options in the initial research phase.")
@@ -107,7 +109,7 @@ async function playGame (botPath: string, serverUrl: string, playerId?: string) 
   game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
 
   // Play the game until the end
-  while (game.phase !== 'end') {
+  while (game.game.phase !== Phase.END) {
     logGameState(game);
     move = bot.play(game, game.waitingFor);
     console.log('Bot plays:', move);
@@ -119,22 +121,22 @@ async function playGame (botPath: string, serverUrl: string, playerId?: string) 
   return game;
 }
 
-async function playMoveAndWaitForTurn (serverUrl: string, playerId: string, move) {
+async function playMoveAndWaitForTurn (serverUrl: string, playerId: string, move: InputResponse) {
   console.log('Bot plays:', move);
   const response = await fetch(`${serverUrl}/player/input?id=${playerId}`, {method: "post", body: JSON.stringify(move)} );
-  const game = (await response.json()) as Game;
+  const game = (await response.json()) as PlayerViewModel;
   return await waitForTurn(serverUrl, playerId, game);
 }
 
-async function waitForTurn (serverUrl: string, playerId: string, game?: Game) {
-  while (!(game?.waitingFor !== undefined || game?.phase === 'end')) {
+async function waitForTurn (serverUrl: string, playerId: string, game?: PlayerViewModel) {
+  while (!(game?.waitingFor !== undefined || game?.game?.phase === Phase.END)) {
     await new Promise(resolve => setTimeout(resolve, 30));
     const response = await fetch(`${serverUrl}/api/player?id=${playerId}`);
-    game = (await response.json()) as Game;
+    game = (await response.json()) as PlayerViewModel;
   }
   return game;
 }
 
-function logGameState (game) {
-  console.log(`Game state (${game.players.length}p): gen=${game.generation}, temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
+function logGameState (game:PlayerViewModel) {
+  console.log(`Game state (${game.players.length}p): gen=${game.game.generation}, temp=${game.game.temperature}, oxy=${game.game.oxygenLevel}, oceans=${game.game.oceans}, phase=${game.game.phase}`);
 }

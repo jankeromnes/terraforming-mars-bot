@@ -1,16 +1,24 @@
 {
     "compilerOptions": {
+      "lib": ["dom", "es2019"],
       "outDir": "./built",
       "target": "ES2022",
-      "module": "Node16",
-      "moduleResolution": "node16",
+      "module": "CommonJS",
+      "moduleResolution": "node",
       "allowSyntheticDefaultImports": true,
-      "sourceMap": true,
+      "resolveJsonModule": true,
+      "sourceMap": true
     },
     "include": [
         "bots/**/*.ts",
         "models/**/*.ts",
+        "terraforming-mars/src/common/**/*.ts",
         "play-bot.ts",
-        "start-game.ts"
-    ]
+        "start-game.ts",
+    ],
+    "exclude": [
+      "terraforming-mars/tests/**/*.ts",
+      "terraforming-mars/src/server/**/*.ts",
+      "terraforming-mars/src/client/**/*.ts",
+    ],
   }
