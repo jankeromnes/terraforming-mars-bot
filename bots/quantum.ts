@@ -6,10 +6,8 @@ import type { PlayerInputModel } from '../terraforming-mars/src/common/models/Pl
 import { PlayerInputType } from '../terraforming-mars/src/common/input/PlayerInputType.js';
 import type { InputResponse } from '../terraforming-mars/src/common/inputs/InputResponse.js';
 import type { Payment } from '../terraforming-mars/src/common/inputs/Payment.js';
-import type { SpaceModel } from '../terraforming-mars/src/common/models/SpaceModel.js';
 import type { IVictoryPoints } from '../terraforming-mars/src/common/cards/IVictoryPoints.js';
 import { Units } from '../terraforming-mars/src/common/Units.js';
-import { CardComponent } from '../terraforming-mars/src/common/cards/render/CardComponent.js';
 import type { CardRenderItem, CardRenderTile, MyCardComponent } from './CardComponents.js';
 import type { SpaceId } from '../terraforming-mars/src/common/Types.js';
 
@@ -100,8 +98,8 @@ function parseRow(row: MyCardComponent[], game: PlayerViewModel) {
             const netBenifit = (benifit - cost) * generationsLeft
             return netBenifit;
           case 'OR': 
-            let firstPart = parseRow(row.slice(0, index), game);
-            let secondPart = parseRow(row.slice(index+1), game);
+            const firstPart = parseRow(row.slice(0, index), game);
+            const secondPart = parseRow(row.slice(index+1), game);
             return Math.max(firstPart, secondPart);
           }
           break;
@@ -140,7 +138,7 @@ function evaluateProductionBox(productionBox: Units, game: PlayerViewModel) {
 function evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
   if (cardInstance.isDisabled)
     return -10000;
-  let score = -cardInstance.calculatedCost;
+  var score = -cardInstance.calculatedCost;
   const card = getCard(cardInstance.name);
   if (card && card.victoryPoints)
     score += evaluateVictoryPoints(card.victoryPoints, game);
@@ -262,7 +260,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): numbe
 // Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateSpace (spaceId: SpaceId, game:PlayerViewModel) {
   // TODO: Also evaluate adjacent bonuses (points, megacredits, etc)
-  let score = 0;
+  var score = 0;
   const bonusValues = [
     2,  // TITANIUM
     2,  // STEEL
@@ -287,7 +285,7 @@ function sortByEstimatedValue<T>(items:T[], evaluator: (t: T,game: PlayerViewMod
 }
 
 function shuffle<T>(items:T[]) {
-    for (let i = items.length - 1; i > 0; i--) {
+    for (var i = items.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [items[i], items[j]] = [items[j], items[i]];
     }
@@ -320,8 +318,8 @@ export function playInitialResearchPhase(game:PlayerViewModel, availableCorporat
 // Choose how to pay for a given card (or amount)
 function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, card?: CardModel): Payment {
   // Prefer non-megacredit resources when available (in case there are not enough megacredits)
-  let megaCredits = card ? card.calculatedCost : waitingFor.amount ?? 0;
-  let heat = 0;
+  var megaCredits = card ? card.calculatedCost : waitingFor.amount ?? 0;
+  var heat = 0;
   if (waitingFor.canUseHeat) {
     heat = Math.min(game.thisPlayer.heat, megaCredits);
     megaCredits -= heat;
@@ -330,7 +328,7 @@ function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, ca
   const projectCard = card ? getCard(card.name) : undefined;
   if (card && !projectCard) 
     throw new Error(`Could not find project card: ${card.name}`);
-  let steel = 0;
+  var steel = 0;
   if ((waitingFor.canUseSteel || projectCard?.tags.includes(Tag.BUILDING))) {
     steel = Math.min(game.thisPlayer.steel, Math.floor(megaCredits / game.thisPlayer.steelValue));
     megaCredits -= steel * game.thisPlayer.steelValue;
@@ -340,7 +338,7 @@ function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, ca
       megaCredits = Math.max(0, megaCredits - game.thisPlayer.steelValue);
     }
   }
-  let titanium = 0;
+  var titanium = 0;
   if ((waitingFor.canUseTitanium || projectCard?.tags.includes(Tag.SPACE))) {
     titanium = Math.min(game.thisPlayer.titanium, Math.floor(megaCredits / game.thisPlayer.titaniumValue));
     megaCredits -= titanium * game.thisPlayer.titaniumValue;
@@ -350,8 +348,8 @@ function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, ca
       megaCredits = Math.max(0, megaCredits - game.thisPlayer.titaniumValue);
     }
   }
-  let microbes = 0;
-  let floaters = 0;
+  const microbes = 0;
+  const floaters = 0;
   const science = 0;
   const seeds = 0;
   const data = 0;
@@ -397,7 +395,7 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
         // Pick the best available cards
         // TODO reverse when "title": "Select a card to discard" / "buttonLabel": "Discard",
         const sortedCards = sortByEstimatedValue(option.cards, evaluateCard, game);
-        let numberOfCards = option.min;
+        var numberOfCards = option.min;
         while (numberOfCards < option.max && evaluateCard(sortedCards[numberOfCards],game) > 3) {
           numberOfCards++;
         }
