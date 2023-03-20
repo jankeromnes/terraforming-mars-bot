@@ -94,7 +94,7 @@ export async function startGame(players: string[], serverUrl: string, quiet:bool
   const game = JSON.parse(responseText) as SimpleGameModel;
   if (!quiet) {
     console.log('Started new game. Player links:');
+    console.log(game.players.map(p => (quiet ? '' : `  - ${p.name} (${p.color}): `) + `${serverUrl}/player?id=${p.id}`).join('\n'));
   }
-  console.log(game.players.map(p => (quiet ? '' : `  - ${p.name} (${p.color}): `) + `${serverUrl}/player?id=${p.id}`).join('\n'));
   return game.players;
 };

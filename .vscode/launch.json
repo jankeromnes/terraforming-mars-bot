@@ -17,6 +17,20 @@
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "No Build Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/play-bot.ts",
+            "args": [ "--bot=quantum", "--server=http://localhost:8080" ],
+            "outFiles": [
+                "${workspaceFolder}/built/**/*.js"
+            ]
         }
+ 
     ]
 }
