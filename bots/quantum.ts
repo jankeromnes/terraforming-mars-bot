@@ -104,6 +104,30 @@ function parseRow(row: MyCardComponent[], game: PlayerViewModel) {
             const firstPart = parseRow(row.slice(0, index), game);
             const secondPart = parseRow(row.slice(index+1), game);
             return Math.max(firstPart, secondPart);
+          case '/': 
+            const production = parseRow(row.slice(0, index), game);
+            const per = row[index+1];
+            if (per.is !== 'item')
+              throw new Error("Unexpected 'per' in" + JSON.stringify(row));
+            var count = 0;
+            if (per.isPlayed)
+              count = per.anyPlayer ? game.players.reduce((sum,p) => sum + p.tags[per.type],0) : game.thisPlayer.tags[per.type]
+            else
+              switch(per.type)
+              {
+                case 'city':
+                  count = per.anyPlayer ? game.players.reduce((sum,p) => sum + p.citiesCount,0) : game.thisPlayer.citiesCount;
+                  break;
+                case 'greenery':
+                  count = per.anyPlayer ? game.players.reduce((sum,p) => sum + p.victoryPointsBreakdown.greenery,0) : game.thisPlayer.victoryPointsBreakdown.greenery;
+                  break;
+                default:
+                  throw new Error("Unexpected 'per' in" + JSON.stringify(row));
+              }
+            const num = Math.floor(count/Math.abs(per.amount));
+            return production * num;
+          default:
+            console.log("Unexpected card symbol type :", item)
           }
           break;
         case 'item':
@@ -159,6 +183,16 @@ function evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
   return score;
 }
 
+function evaluateTriggerCard (cardInstance: CardModel, game: PlayerViewModel) {
+  if (cardInstance.isDisabled)
+    return -10000;
+  const card = getCard(cardInstance.name);
+  if (card && card.metadata.renderData)
+    return evaluateTriggerCardComponent(card.metadata.renderData as MyCardComponent, game);
+
+  throw new Error ("Unrecognised card found " + cardInstance.name);
+}
+
 // Source: https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 // chose the best option to play as one of the two main turn actions
 function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {score:number,item:InputResponse}  {
@@ -185,9 +219,9 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     if (option.title === "Sell patents")
       return { score: -100, item: {type: 'card', cards: []}};
     else if (option.title === "Standard projects")
-      bestCard = sortByEstimatedValue(option.cards, evaluateCard, game)[0];
+      bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
     else if (option.title === 'Perform an action from a played card')
-      bestCard = sortByEstimatedValue(option.cards, evaluateCard, game)[0];
+      bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
     else
       throw new Error(`Unsupported card selection title (${option.title})`);
     return { score: bestCard.result.score, item: {type: 'card', cards: [bestCard.source.name]}};
@@ -256,7 +290,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     */
     else if (title === 'Pass for this generation') {
       // Only pass when no "good" choices remain
-      score = -100;
+      score = 0;
     }
     else if (title === 'Sell patents') {
       // Don't sell patents
@@ -276,10 +310,22 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
       }
       else
       {
-        // any card or action with optional actions will come
-        // through here, there are a lot of possible options
-        score = -100;
-        console.log('Could not evaluate option! ', option);
+        const match = title.match(/Steal (\d+) ([a-zA-Z€]+)/)
+        if (match && match.length === 3)
+        {
+          const resource = match[2];
+          if (resource != 'M€' && resource != 'steel')
+            throw new Error("Trying to steal unexpected resource type: " + resource);
+          const amount = +match[1];
+          const otherPlayers = game.players.filter(p => p.color != game.thisPlayer.color);
+          if (otherPlayers.some(p => resource === 'M€' ? p.megaCredits : p.steel >= amount))
+            score = amount * bonusValues[resource];
+        } else {
+          // any card or action with optional actions will come
+          // through here, there are a lot of possible options
+          score = -100;
+          console.log('Could not evaluate option! ', option);
+        }
       }
     }
     return { score, item: { type: 'option' } }
@@ -469,6 +515,18 @@ function evaluateCardComponent(cardComponent: MyCardComponent, game: PlayerViewM
     case 'production-box' : return evaluateProduction(cardComponent.rows, game);
     case 'tile' : return evaluateTile(cardComponent, game);
     case 'item' : return evaluateItem(cardComponent, game);
+    case 'symbol' : return 0;
+    default: return 0;
+  }
+}
+function evaluateTriggerCardComponent(cardComponent: MyCardComponent, game: PlayerViewModel) {
+  switch (cardComponent.is) {
+    case 'root' : return evaluateTriggerCardComponents(cardComponent.rows, game);
+    case 'effect' : return evaluateTriggerEffect(cardComponent.rows, game);
+    case 'production-box' : return 0;
+    case 'tile' : return 0;
+    case 'item' : return 0;
+    case 'symbol' : return 0;
     default: return 0;
   }
 }
@@ -478,9 +536,57 @@ function evaluateCardComponents(cardComponents: MyCardComponent[][], game: Playe
   return score;
 }
 
+function evaluateTriggerCardComponents(cardComponents: MyCardComponent[][], game: PlayerViewModel) {
+  var score = 0;
+  // todo: handle OR
+  cardComponents.forEach(c => c.forEach(component => score += evaluateTriggerCardComponent(component, game)));
+  return score;
+}
 
-function evaluateEffect(rows: MyCardComponent[][], game: PlayerViewModel) {
-  return 0; // effects are hard to evaluate
+function evaluateTriggerEffect(effect: MyCardComponent[][], game: PlayerViewModel) {
+  if (effect.length !== 3 || effect[1].length !== 1 || effect[1][0].is !== 'symbol')
+    throw new Error("Cannot understand effect that doesn't have 3 rows with a symbol in the middle: " + JSON.stringify(effect));
+  var cost = 0;
+  switch (effect[1][0].type) {
+    // when x do y
+    case ':':
+      break;
+    // spend x to do y
+    case '->':
+      cost = evaluateCardComponent(effect[0][0], game);
+      break;
+    case 'OR':
+      break;
+    default:
+      throw new Error("Cannot understand effect that has this symbol in the middle: " + JSON.stringify(effect));
+
+  }
+  const benifit = evaluateCardComponent(effect[2][0],game);
+  return benifit - cost;
+}
+
+function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel) {
+  if (effect.length !== 3 || effect[1].length !== 1 || effect[1][0].is !== 'symbol')
+    throw new Error("Cannot understand effect that doesn't have 3 rows with a symbol in the middle: " + JSON.stringify(effect));
+  var cost = 0;
+  var occurences = 14 - game.game.generation;
+  switch (effect[1][0].type) {
+    // when x do y
+    case ':':
+      occurences = 5; // TODO: total guess
+      break;
+    // spend x to do y
+    case '->':
+      cost = evaluateCardComponent(effect[0][0], game);
+      break;
+    case 'OR':
+      break;
+    default:
+      throw new Error("Cannot understand effect that has this symbol in the middle: " + JSON.stringify(effect));
+
+  }
+  const benifit = evaluateCardComponent(effect[2][0],game);
+  return (benifit - cost)*occurences;
 }
 
 function evaluateProduction(rows: MyCardComponent[][], game: PlayerViewModel) {
@@ -501,6 +607,7 @@ const bonusValues = {
   'heat': 1,
   'megacredits': 1,
   'megacredit': 1,
+  'M€': 1,
   'oceans': 14,
   'ocean': 14,
   'oxygen': 10,
@@ -522,7 +629,7 @@ function evaluateItem(cardComponent: CardRenderItem, game: PlayerViewModel) {
   // is lower the more player there are
   const divider = cardComponent.anyPlayer ? game.players.length : 1
   if (bonusValues[cardComponent.type])
-    return bonusValues[cardComponent.type] / divider;
+    return bonusValues[cardComponent.type] * cardComponent.amount / divider;
   return 0;
 }
 

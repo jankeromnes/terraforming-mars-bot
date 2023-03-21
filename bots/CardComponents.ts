@@ -7,6 +7,7 @@ import type { TileType } from "../terraforming-mars/src/common/TileType";
 export type CardRenderItem = {
     is: 'item';
     type: string;
+    amount: number;
     anyPlayer?: boolean;
     showDigit?: boolean;
     amountInside?: boolean;
@@ -23,32 +24,32 @@ export type CardRenderItem = {
 }
 
 export type CardRenderRoot = {
-    is: 'root';
-    rows: MyCardComponent[][];
+    is: 'root'
+    rows: MyCardComponent[][]
 }
 
 export type CardRenderProductionBox = {
-    is: 'production-box';
+    is: 'production-box'
     rows: MyCardComponent[][]
 }
 
 export type CardRenderEffect = {
-    is: 'effect';
+    is: 'effect'
     rows: MyCardComponent[][]
 }
 //'corp-box-effect' |
 //'corp-box-action' |
 export type CardRenderSymbol = {
-    is: 'symbol';
-    type: CardRenderSymbolType;
-    size: Size;
-    isIcon: boolean;
+    is: 'symbol'
+    type: CardRenderSymbolType
+    size: Size
+    isIcon: boolean
 }
 export type CardRenderTile = {
-    is: 'tile';
-    tile: TileType;
-    hasSymbol: boolean;
-    isAres: boolean;
+    is: 'tile'
+    tile: TileType
+    hasSymbol: boolean
+    isAres: boolean
 }
 
 export type MyCardComponent = 
