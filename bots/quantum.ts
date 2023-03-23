@@ -111,7 +111,9 @@ function parseRow(row: MyCardComponent[], game: PlayerViewModel) {
               throw new Error("Unexpected 'per' in" + JSON.stringify(row));
             var count = 0;
             if (per.isPlayed)
-              count = per.anyPlayer ? game.players.reduce((sum,p) => sum + p.tags[per.type],0) : game.thisPlayer.tags[per.type]
+              count = per.anyPlayer 
+                ? game.players.reduce((sum,p) => sum + (p.tags.find(tag => tag.tag === per.type)?.count ?? 0),0) 
+                : (game.thisPlayer.tags.find(tag => tag.tag === per.type)?.count ?? 0)
             else
               switch(per.type)
               {
@@ -156,7 +158,7 @@ function evaluateVictoryPoints (victoryPoints: number | 'special' | IVictoryPoin
     // todo take into account how many we will pick up during the game
     if(points.type === "resource")
         return 0;
-    return Math.floor(game.thisPlayer.tags[points.type] / points.per) * points.points * 5;
+    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === points.type)?.count ?? 0) / points.per) * points.points * 5;
   }
 }
 
@@ -214,18 +216,25 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     const choice = option.options.indexOf(bestOption.source);
     return { score: bestOption.result.score, item: { type: 'or', index: choice, response: bestOption.result.item }};
 
-  case PlayerInputType.SELECT_CARD:
+  case PlayerInputType.SELECT_CARD: {
+    const title = typeof option.title === "string" ? option.title : option.title.message;
     var bestCard: {result:{score:number}, source: CardModel};
-    if (option.title === "Sell patents")
+    if (title === "Sell patents")
       return { score: -100, item: {type: 'card', cards: []}};
-    else if (option.title === "Standard projects")
+    else if (title === "Standard projects")
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
-    else if (option.title === 'Perform an action from a played card')
+    else if (title === 'Perform an action from a played card')
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
-    else
-      throw new Error(`Unsupported card selection title (${option.title})`);
+    else {
+      const match = title.match(/Select card to add (\d+) ([a-z]+)/)
+      if (match.length === 3)
+        // TODO: pick the best card to send the resource to
+        return { score: 10, item: {type: 'card', cards: [option.cards[0].name]}};
+      else
+        throw new Error(`Unsupported card selection title (${option.title})`);
+    } 
     return { score: bestCard.result.score, item: {type: 'card', cards: [bestCard.source.name]}};
-
+  }
   case PlayerInputType.SELECT_PROJECT_CARD_TO_PLAY:
     const cardToPlay = sortByEstimatedValue(option.cards, evaluateCard, game)[0];
     return { score: cardToPlay.result.score, item: { type: 'projectCard', card: cardToPlay.source.name, payment: chooseHowToPay(game, option, cardToPlay.source) } };
@@ -260,34 +269,6 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
       // Source: "1.1 Standard Cards"
       score = 10;
     }
-    /*
-    var match = title.match(/([^(]+) \((\d+) MC\)/);
-    if (match?.length === 3)
-    {
-      const projectType = match[1];
-      const cost = parseInt(match[2], 10);
-      if (projectType === "Power plant") {
-        // Source: "1.1 Standard Cards"
-        return 7 - cost;
-      }
-      if (projectType === "Asteroid") {
-        // Source: "1.1 Standard Cards"
-        return 10 - cost;
-      }
-      if (projectType === "Aquifer") {
-        // Source: "1.1 Standard Cards"
-        return 14 - cost;
-      }
-      if (projectType === "Greenery") {
-        // Source: "2.1 Card Advantage"
-        return 19 - cost;
-      }
-      if (projectType === "City") {
-        // Source: "4.5 Points from City"
-        return 9 - cost;
-      }
-    }
-    */
     else if (title === 'Pass for this generation') {
       // Only pass when no "good" choices remain
       score = 0;
@@ -323,7 +304,8 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
         } else {
           // any card or action with optional actions will come
           // through here, there are a lot of possible options
-          score = -100;
+          // give it a low but positive score because most actions are useful
+          score = 1;
           console.log('Could not evaluate option! ', option);
         }
       }
@@ -450,7 +432,20 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
 
     case PlayerInputType.OR_OPTIONS:
       // Sort playable options by estimated value
-      return evaluateOption(option, game).item;
+      const response = evaluateOption(option, game).item;
+      console.log();
+      console.log(`Player resources :M(${game.thisPlayer.megaCredits}),steel(${game.thisPlayer.steel}),titanium(${game.thisPlayer.titanium}),plants(${game.thisPlayer.plants}),energy(${game.thisPlayer.energy}),heat(${game.thisPlayer.heat}),cards(${game.thisPlayer.cardsInHandNbr})`);
+      console.log(`Player cards : ${game.cardsInHand.map(c => `${c.name}(${c.calculatedCost})`).join(", ")}`);
+      if (response.type === 'or')
+        if (response.response.type === 'projectCard')
+          console.log("Played card: " + response.response.card);
+        else if (response.response.type === 'card')
+          console.log("Played action: " + response.response.cards[0]);
+        else if (response.response.type === 'option')
+          console.log("Played option: ", option.options[response.index].title);
+        else 
+          console.log("Played unexpected: " + response.response.type);
+      return response;
 
     case PlayerInputType.SELECT_AMOUNT:
       return { type: 'amount', amount: chooseRandomNumber(option.min, option.max) };
@@ -561,7 +556,9 @@ function evaluateTriggerEffect(effect: MyCardComponent[][], game: PlayerViewMode
       throw new Error("Cannot understand effect that has this symbol in the middle: " + JSON.stringify(effect));
 
   }
-  const benifit = evaluateCardComponent(effect[2][0],game);
+  // the benifit of an event is never negative, 
+  // but reduced card costs can look negative so make them positive
+  const benifit = Math.abs(evaluateCardComponent(effect[2][0],game));
   return benifit - cost;
 }
 
@@ -585,7 +582,9 @@ function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel) {
       throw new Error("Cannot understand effect that has this symbol in the middle: " + JSON.stringify(effect));
 
   }
-  const benifit = evaluateCardComponent(effect[2][0],game);
+  // the benifit of an event is never negative, 
+  // but reduced card costs can look negative so make them positive
+  const benifit = Math.abs(evaluateCardComponent(effect[2][0],game));
   return (benifit - cost)*occurences;
 }
 
@@ -605,6 +604,7 @@ const bonusValues = {
   'card': 2,
   'city': 9, // Source: "4.5 Points from City"
   'heat': 1,
+  'energy': 1,
   'megacredits': 1,
   'megacredit': 1,
   'M€': 1,
