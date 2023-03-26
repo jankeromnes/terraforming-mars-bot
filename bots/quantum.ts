@@ -13,6 +13,7 @@ import type { SpaceId } from '../terraforming-mars/src/common/Types.js';
 import { TileType } from '../terraforming-mars/src/common/TileType.js';
 import { ICardRequirement, ITagCardRequirement } from '../terraforming-mars/src/common/cards/ICardRequirement.js';
 import { RequirementType } from '../terraforming-mars/src/common/cards/RequirementType.js';
+import { ICardRenderDynamicVictoryPoints } from '../terraforming-mars/src/common/cards/render/ICardRenderDynamicVictoryPoints.js';
 
 // Copyright © 2020 Jan Keromnes.
 // The following code is covered by the MIT license.
@@ -21,6 +22,9 @@ import { RequirementType } from '../terraforming-mars/src/common/cards/Requireme
 
 // To test this bot, run this command:
 //   node play-bot --bot=quantum
+
+// target Quantum bot (100 games): average 50.69 points (min 30, max 72)
+// from https://github.com/terraforming-mars/terraforming-mars/issues/1094
 
 // Source: "6. Corporations" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateCorporation (corporation: CardModel, game:PlayerViewModel) {
@@ -149,16 +153,22 @@ function howManyTimesWillOccur(condition: MyCardComponent[]) {
 
 // Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 function evaluateVictoryPoints (victoryPoints: number | 'special' | IVictoryPoints, game: PlayerViewModel) {
-  if (game.players.length == 0)
+  if (game.players.length < 2)
     return 0;
   if (typeof victoryPoints === 'number') {
     return 5 * victoryPoints;
-  } else {
+  } else if ((victoryPoints as any).per !== undefined){
     const points = victoryPoints as IVictoryPoints;
     // todo take into account how many we will pick up during the game
     if(points.type === "resource")
         return 0;
     return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === points.type)?.count ?? 0) / points.per) * points.points * 5;
+  } else if ((victoryPoints as any).target !== undefined){
+    const points = victoryPoints as any as ICardRenderDynamicVictoryPoints;
+    const type = points.item?.type as string;
+    // type could be a type of tag or a type of resouce (this code only works for existing tags)
+    // todo take into account how many we will pick up during the game
+    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === type)?.count ?? 0) / points.target) * points.points * 5;
   }
 }
 
@@ -221,11 +231,13 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     var bestCard: {result:{score:number}, source: CardModel};
     if (title === "Sell patents")
       return { score: -100, item: {type: 'card', cards: []}};
-    else if (title === "Standard projects")
+    else if (title === "Standard projects") {
+      console.log(`Standard projects : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
-    else if (title === 'Perform an action from a played card')
+    } else if (title === 'Perform an action from a played card') {
+      console.log(`Events : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
-    else {
+    } else {
       const match = title.match(/Select card to add (\d+) ([a-z]+)/)
       if (match.length === 3)
         // TODO: pick the best card to send the resource to
@@ -241,7 +253,8 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
 
   case PlayerInputType.SELECT_SPACE: {
     const title = typeof option.title === "string" ? option.title : option.title.message;
-    if (title.match(/Convert (\d+) plants into greenery/)) {
+    if (title.match(/Convert (\d+) plants into greenery/) || 
+        title === 'Select space for greenery tile') {
       // Source: "2.1 Card Advantage"
       const sortedSpaces = sortByEstimatedValue(option.availableSpaces, evaluateSpace, game);
       return { score: sortedSpaces[0].result.score + 10, item: { type: 'space', spaceId: sortedSpaces[0].source } }
@@ -271,7 +284,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     }
     else if (title === 'Pass for this generation') {
       // Only pass when no "good" choices remain
-      score = 0;
+      score = -10;
     }
     else if (title === 'Sell patents') {
       // Don't sell patents
@@ -287,7 +300,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
       if (match && match.length === 3)
       {
         const generationsLeft = 14 - game.game.generation;
-        score = +match[2] * bonusValues[match[1]] * generationsLeft;
+        score = +match[2] * bonusValues(match[1], game) * generationsLeft;
       }
       else
       {
@@ -300,7 +313,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
           const amount = +match[1];
           const otherPlayers = game.players.filter(p => p.color != game.thisPlayer.color);
           if (otherPlayers.some(p => resource === 'M€' ? p.megaCredits : p.steel >= amount))
-            score = amount * bonusValues[resource];
+            score = amount * bonusValues(resource, game);
         } else {
           // any card or action with optional actions will come
           // through here, there are a lot of possible options
@@ -435,7 +448,7 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
       const response = evaluateOption(option, game).item;
       console.log();
       console.log(`Player resources :M(${game.thisPlayer.megaCredits}),steel(${game.thisPlayer.steel}),titanium(${game.thisPlayer.titanium}),plants(${game.thisPlayer.plants}),energy(${game.thisPlayer.energy}),heat(${game.thisPlayer.heat}),cards(${game.thisPlayer.cardsInHandNbr})`);
-      console.log(`Player cards : ${game.cardsInHand.map(c => `${c.name}(${c.calculatedCost})`).join(", ")}`);
+      console.log(`Player cards : ${game.cardsInHand.map(c => `${c.name}(${c.calculatedCost},${evaluateCard(c, game)})`).join(", ")}`);
       if (response.type === 'or')
         if (response.response.type === 'projectCard')
           console.log("Played card: " + response.response.card);
@@ -451,8 +464,12 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
       return { type: 'amount', amount: chooseRandomNumber(option.min, option.max) };
 
     case PlayerInputType.SELECT_CARD:
-      if (option.title === 'Select card(s) to buy')
+      const title = typeof option.title === "string" ? option.title : option.title.message;
+      if (title.match(/Select\s*\d* card\(s\) to (buy|keep)/) ||
+          title === 'Select builder card to copy')
       {
+        console.log(`Cards for sale : ${option.cards.map(c => `${c.name}(${c.calculatedCost},${evaluateCard(c, game)})`).join(", ")}`);
+        
         // Pick the best available cards
         // TODO reverse when "title": "Select a card to discard" / "buttonLabel": "Discard",
         const sortedCards = sortByEstimatedValue(option.cards, evaluateCard, game);
@@ -461,9 +478,17 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
           numberOfCards++;
         }
         return { type: 'card', cards: sortedCards.slice(0, numberOfCards).map(c => c.source.name) };
-      } else if (option.title === 'You cannot afford any cards') {
+      } else if (title === 'You cannot afford any cards') {
         return { type: 'card', cards: [] };
-      }
+      } else {
+        const match = title.match(/Select card to add [\d]* [\w]+\(s\)/);
+        if (match && match.length > 0)
+        {
+          // ideally we should chose the best place to put the resource
+          // but often there is only one option
+          return { type: 'card', cards: [ option.cards[0].name ] };
+        }
+      } 
       throw new Error ("Unexpected card action " + option.title);
 
     case PlayerInputType.SELECT_PAYMENT:
@@ -558,7 +583,8 @@ function evaluateTriggerEffect(effect: MyCardComponent[][], game: PlayerViewMode
   }
   // the benifit of an event is never negative, 
   // but reduced card costs can look negative so make them positive
-  const benifit = Math.abs(evaluateCardComponent(effect[2][0],game));
+  var benifit = 0;
+  effect[2].forEach(c => benifit += Math.abs(evaluateCardComponent(c,game)));
   return benifit - cost;
 }
 
@@ -599,38 +625,62 @@ function evaluateTile(cardComponent: CardRenderTile, game: PlayerViewModel) {
   return score;
 }
 
-const bonusValues = {
+function bonusValues(type: string, game: PlayerViewModel) {
+  const basicValues = {
   'cards': 2,
   'card': 2,
-  'city': 9, // Source: "4.5 Points from City"
   'heat': 1,
   'energy': 1,
   'megacredits': 1,
   'megacredit': 1,
   'M€': 1,
-  'oceans': 14,
-  'ocean': 14,
-  'oxygen': 10,
   'plants': 2,
   'plant': 2,
   'steel': 2,
-  'temperature': 10,
   'titanium': 2,
-  'tr': 10,
-  'trs': 10,
   // these needs more detail
+  'science': 2,
   'microbes': 1, 
   'animals': 2,
   'microbe': 1, 
   'animal': 2,
-};
+  };
+  const trs = {
+    'oceans': 9,
+  'ocean': 9,
+  'greenery': 14, // roughly
+  'oxygen': 5,
+  'temperature': 5,
+  'tr': 5,
+  'trs': 5,
+  };
+
+  if (basicValues[type])
+    return basicValues[type];
+  if (type === 'city')
+    if (game.players.length > 1)
+      return 9.5; // Source: "4.5 Points from City"
+    else
+      return 4;
+  if (trs[type])
+    return trs[type] + 14 - game.game.generation;
+  if (type !== 'text')
+    console.log("Unknown resouce type: " + type);
+  return 0;
+}
 function evaluateItem(cardComponent: CardRenderItem, game: PlayerViewModel) {
   // if this is affecting other players then the value 
   // is lower the more player there are
-  const divider = cardComponent.anyPlayer ? game.players.length : 1
-  if (bonusValues[cardComponent.type])
-    return bonusValues[cardComponent.type] * cardComponent.amount / divider;
-  return 0;
+  const divider = cardComponent.anyPlayer 
+    ? game.players.length < 2
+      ? -10000
+      : -game.players.length
+    : 1;
+  var amount = cardComponent.amount;
+  // for some reson some cards show amount of -1 even thought they are avtually +1
+  if (cardComponent.type === 'city' || cardComponent.type === 'greenery')
+    amount = Math.abs(amount);
+  return bonusValues(cardComponent.type, game) * amount / divider;
 }
 
 // reduce value by one point per missing requirement
