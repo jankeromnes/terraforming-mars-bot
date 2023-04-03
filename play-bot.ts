@@ -105,19 +105,10 @@ async function playGame (botPath: string, serverUrl: string, gameNumber: number,
 
   // Initial research phase
   let game = await waitForTurn(serverUrl, playerId, undefined);
-  logGameState(game, gameNumber);
-  if (game.waitingFor.options === undefined) {
-    throw new Error("There are no options in the initial research phase.")
-  }
-  const availableCorporations = game.waitingFor.options[0].cards;
-  const availableCards = game.waitingFor.options[1].cards;
-  let move = bot.playInitialResearchPhase(game, availableCorporations, availableCards);
-  game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
-
   // Play the game until the end
   while (game.game.phase !== Phase.END) {
     logGameState(game, gameNumber);
-    move = bot.play(game, game.waitingFor);
+    const move = bot.play(game, game.waitingFor);
     lastMove = move;
 //    console.log('Bot plays:', move);
     game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
