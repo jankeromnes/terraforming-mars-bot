@@ -1,6 +1,6 @@
 import type { PlayerViewModel } from '../terraforming-mars/src/common/models/PlayerModel.js'
 import { getCard } from './ClientCardManifest.js';
-import { Tag } from '../terraforming-mars/src/common/cards/tag.js';
+import { Tag } from '../terraforming-mars/src/common/cards/Tag.js';
 import type { CardModel } from '../terraforming-mars/src/common/models/CardModel.js';
 import type { PlayerInputModel } from '../terraforming-mars/src/common/models/PlayerInputModel.js';
 import { PlayerInputType } from '../terraforming-mars/src/common/input/PlayerInputType.js';
@@ -164,19 +164,19 @@ function evaluateVictoryPoints (victoryPoints: number | 'special' | IVictoryPoin
   if (game.players.length < 2)
     return 0;
   if (typeof victoryPoints === 'number') {
-    return 5 * victoryPoints;
+    return victoryPointValue * victoryPoints;
   } else if ((victoryPoints as any).per !== undefined){
     const points = victoryPoints as IVictoryPoints;
     // todo take into account how many we will pick up during the game
     if(points.type === "resource")
         return 0;
-    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === points.type)?.count ?? 0) / points.per) * points.points * 5;
+    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === points.type)?.count ?? 0) / points.per) * points.points * victoryPointValue;
   } else if ((victoryPoints as any).target !== undefined){
     const points = victoryPoints as any as ICardRenderDynamicVictoryPoints;
     const type = points.item?.type as string;
     // type could be a type of tag or a type of resouce (this code only works for existing tags)
     // todo take into account how many we will pick up during the game
-    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === type)?.count ?? 0) / points.target) * points.points * 5;
+    return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === type)?.count ?? 0) / points.target) * points.points * victoryPointValue;
   }
 }
 
@@ -300,7 +300,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     }
     else if (title === 'Pass for this generation') {
       // Only pass when no "good" choices remain
-      score = -10;
+      score = 0;
     }
     else if (title === 'Sell patents') {
       // Don't sell patents
@@ -377,7 +377,7 @@ function evaluateSpace (spaceId: SpaceId, game:PlayerViewModel, tileType: TileTy
       return -100;
     if (game.players.length < 2)
       return score;
-    score += adjacentSpaces.filter(s => s.tileType === TileType.GREENERY).length * 5;
+    score += adjacentSpaces.filter(s => s.tileType === TileType.GREENERY).length * victoryPointValue;
     // each adjacent space is worth 1 point because I could put a greenery there
     // but reduce that if there is already an oposing city adjacent to the space
     // and increase it if there is one of my citied adjacent
@@ -400,8 +400,8 @@ function evaluateSpace (spaceId: SpaceId, game:PlayerViewModel, tileType: TileTy
 
     if (game.players.length < 2)
       return score;
-    score += adjacentSpaces.filter(s => (s.tileType === TileType.CITY) && (s.color === game.thisPlayer.color)).length * 5
-    score -= adjacentSpaces.filter(s => (s.tileType === TileType.CITY) && (s.color !== game.thisPlayer.color)).length * 5 / (game.players.length - 1)
+    score += adjacentSpaces.filter(s => (s.tileType === TileType.CITY) && (s.color === game.thisPlayer.color)).length * victoryPointValue
+    score -= adjacentSpaces.filter(s => (s.tileType === TileType.CITY) && (s.color !== game.thisPlayer.color)).length * victoryPointValue / (game.players.length - 1)
   }
   return score;
 }
@@ -443,11 +443,6 @@ function playInitialResearchPhase(game:PlayerViewModel, availableCorporations:Ca
 function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, card?: CardModel): Payment {
   // Prefer non-megacredit resources when available (in case there are not enough megacredits)
   var megaCredits = card ? card.calculatedCost : waitingFor.amount ?? 0;
-  var heat = 0;
-  if (waitingFor.canUseHeat) {
-    heat = Math.min(game.thisPlayer.heat, megaCredits);
-    megaCredits -= heat;
-  }
 
   const projectCard = card ? getCard(card.name) : undefined;
   if (card && !projectCard) 
@@ -472,6 +467,14 @@ function chooseHowToPay (game: PlayerViewModel, waitingFor: PlayerInputModel, ca
       megaCredits = Math.max(0, megaCredits - game.thisPlayer.titaniumValue);
     }
   }
+
+  // only use heat if there is not enough other resources
+  var heat = 0;
+  if (waitingFor.canUseHeat && megaCredits > game.thisPlayer.megaCredits) {
+    heat = megaCredits - game.thisPlayer.megaCredits;
+    megaCredits -= heat;
+  }
+
   const microbes = 0;
   const floaters = 0;
   const science = 0;
@@ -507,7 +510,14 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
 
     case PlayerInputType.OR_OPTIONS:
       // Sort playable options by estimated value
-      const response = evaluateOption(option, game).item;
+      // if no useful actions are found increase the value of victory points until one is found
+      var response: InputResponse = null;
+      for(victoryPointValue = 5; victoryPointValue < 25; victoryPointValue++) {
+        const bestOption = evaluateOption(option, game);
+        response = bestOption.item;
+        if (bestOption.score > 0)
+          break;
+      }
 
       console.log();
       console.log(`Player resources :M(${game.thisPlayer.megaCredits}),steel(${game.thisPlayer.steel}),titanium(${game.thisPlayer.titanium}),plants(${game.thisPlayer.plants}),energy(${game.thisPlayer.energy}),heat(${game.thisPlayer.heat}),cards(${game.thisPlayer.cardsInHandNbr})`);
@@ -588,6 +598,22 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
       var tileType = tileFromLastCardEvaluated;
       if (tileType === undefined)
       {
+        if (title === "Select space for claim")
+        {
+          const availableTileTypes = [
+            TileType.GREENERY,
+            TileType.OCEAN,
+            TileType.CITY
+          ];  // should also add tiles in hand
+          var bestSpace: {result:{score:number}, source:string} = null;
+          availableTileTypes.forEach(tileType => {
+            const evaluateThisSpace = (space: SpaceId, game: PlayerViewModel) => evaluateSpace(space, game, tileType, false, false, true)
+            const sortedSpaces = sortByEstimatedValue(option.availableSpaces, evaluateThisSpace, game);
+            if (bestSpace == null || sortedSpaces[0].result.score > bestSpace.result.score)
+              bestSpace = sortedSpaces[0]
+          });
+          return { type: 'space', spaceId: bestSpace.source };
+        }
         const match = title.match(/ocean|city|greenery/);
         if (match)
           tileType = getTypeType(match[0]);
@@ -702,6 +728,8 @@ function evaluateTile(cardComponent: CardRenderTile, game: PlayerViewModel, card
   return bonusValues(TileType.toString(cardComponent.tile), game, card)
 }
 
+var victoryPointValue = 5;
+
 function bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
   if (type.endsWith("s"))
     type = type.slice(0, -1);
@@ -721,22 +749,23 @@ function bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
   'animals': 2,
   'microbe': 1, 
   'animal': 2,
+  'fighter': game.players.length < 2 ? 0 : victoryPointValue
   };
   if (basicValues[type])
     return basicValues[type];
 
   var trs = {
-  'ocean': 5,
-  'greenery': 10,
-  'oxygen': 5,
-  'temperature': 5,
-  'tr': 5,
+  'ocean': victoryPointValue,
+  'greenery': victoryPointValue * 2,
+  'oxygen': victoryPointValue,
+  'temperature': victoryPointValue,
+  'tr': victoryPointValue,
   };
   if (game.players.length < 2)
   {
-    trs.greenery -= 5;
+    trs.greenery -= victoryPointValue;
     if (!game.game.gameOptions.soloTR)
-      trs.tr -= 5;
+      trs.tr -= victoryPointValue;
   }
   if ((game.game.oceans === 9) && (type === 'ocean'))
     return 0;
@@ -746,7 +775,7 @@ function bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
     if (type === 'oxygen')
       return 0;
     else
-      trs.greenery -= 5 + 14 - game.game.generation;
+      trs.greenery -= victoryPointValue + 14 - game.game.generation;
 
   var score = 0;
   if (trs[type])
