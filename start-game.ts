@@ -4,7 +4,7 @@
 import type { NewGameConfig, NewPlayerModel } from './terraforming-mars/src/common/game/NewGameConfig.js'
 import { BoardName } from './terraforming-mars/src/common/boards/BoardName.js';
 import type { SimpleGameModel } from './terraforming-mars/src/common/models/SimpleGameModel.js'
-import { Color } from './terraforming-mars/src/common/color.js'
+import { Color } from './terraforming-mars/src/common/Color.js'
 import { RandomMAOptionType } from './terraforming-mars/src/common/ma/RandomMAOptionType.js';
 import { AgendaStyle } from './terraforming-mars/src/common/turmoil/Types.js';
 

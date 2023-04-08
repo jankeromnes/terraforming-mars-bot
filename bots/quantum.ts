@@ -185,13 +185,13 @@ function evaluateProductionBox(productionBox: Units, game: PlayerViewModel) {
 }
 
   // Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
-function evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
+export function evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
   preferedOptionFromLastCard = 0;
   tileFromLastCardEvaluated = undefined;
   if (cardInstance.isDisabled)
     return -10000;
-  var score = -cardInstance.calculatedCost;
   const card = getCard(cardInstance.name);
+  var score = -(cardInstance.calculatedCost == null ? card.cost : cardInstance.calculatedCost);
   if (card && card.victoryPoints)
     score += evaluateVictoryPoints(card.victoryPoints, game);
 
@@ -217,13 +217,13 @@ function evaluateTriggerCard (cardInstance: CardModel, game: PlayerViewModel) {
 
 // Source: https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
 // chose the best option to play as one of the two main turn actions
-function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {score:number,item:InputResponse}  {
+function evaluateOption (option: PlayerInputModel, game: PlayerViewModel, log: boolean): {score:number,item:InputResponse}  {
   switch (option.inputType){
   case PlayerInputType.AND_OPTIONS:
     var score = 0;
     var actions = [];
     for (const andOption of option.options) {
-      const result = evaluateOption(andOption, game);
+      const result = evaluateOption(andOption, game, log);
       score += result.score;
       actions.push(actions);
     }
@@ -231,9 +231,12 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     return {score, item: { type: 'and', responses: actions }} ;
 
   case PlayerInputType.OR_OPTIONS:
-    const sortedOptions = sortByEstimatedValue2(option.options, evaluateOption, game)
+    const evaluateOrOption = (o: PlayerInputModel, g: PlayerViewModel) => evaluateOption(o, g, log);
+    const sortedOptions = sortByEstimatedValue2(option.options, evaluateOrOption, game)
     const bestOption = sortedOptions[0];
-    if (sortedOptions.every(o => o.result.score === bestOption.result.score) && (preferedOptionFromLastCard < option.options.length))
+    if (option.options.every(o => o.inputType === PlayerInputType.SELECT_OPTION) && 
+        sortedOptions.every(o => o.result.score === bestOption.result.score) && 
+        (preferedOptionFromLastCard < option.options.length))
       return { score: 1, item: { type: 'or', index: preferedOptionFromLastCard, response: { type: 'option' }}};
     const choice = option.options.indexOf(bestOption.source);
     return { score: bestOption.result.score, item: { type: 'or', index: choice, response: bestOption.result.item }};
@@ -241,16 +244,20 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
   case PlayerInputType.SELECT_CARD: {
     const title = typeof option.title === "string" ? option.title : option.title.message;
     var bestCard: {result:{score:number}, source: CardModel};
-    if (title === "Sell patents")
-      return { score: -100, item: {type: 'card', cards: []}};
+    if (title === "Sell patents") {
+      // see off any cards that are no longer of value
+      // mosly so they don't confuse my hand
+      const badCardsInHand = sortByEstimatedValue(game.cardsInHand, evaluateCard, game).filter(c => c.result.score < 0);
+      return { score: badCardsInHand.length > 0 ? 1000 : -1000, item: {type: 'card', cards: badCardsInHand.map(c => c.source.name)}};
+    }
     else if (title === "Standard projects") {
-      console.log(`Standard projects : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
+      if (log) console.log(`Standard projects : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
     } else if (title === 'Select a card to discard') {
-      console.log(`Discard from : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
+      if (log) console.log(`Discard from : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[option.cards.length-1];
     } else if (title === 'Perform an action from a played card') {
-      console.log(`Events : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
+      if (log) console.log(`Events : ${option.cards.map(c => `${c.name}(${evaluateTriggerCard(c, game)})`).join(", ")}`);
       bestCard = sortByEstimatedValue(option.cards, evaluateTriggerCard, game)[0];
     } else {
       const match = title.match(/([A|a]dd|[R|r]emove)\s*(\d*) (\w+)/)
@@ -263,8 +270,9 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
     return { score: bestCard.result.score, item: {type: 'card', cards: [bestCard.source.name]}};
   }
   case PlayerInputType.SELECT_PROJECT_CARD_TO_PLAY:
-    const cardToPlay = sortByEstimatedValue(option.cards, evaluateCard, game)[0];
-    return { score: cardToPlay.result.score, item: { type: 'projectCard', card: cardToPlay.source.name, payment: chooseHowToPay(game, option, cardToPlay.source) } };
+    const sortedCards = sortByEstimatedValue(option.cards, evaluateCard, game);
+    if (log) console.log(`Playable cards : ${sortedCards.map(c => `${c.source.name}(${c.result.score})`)}`);
+    return { score: sortedCards[0].result.score, item: { type: 'projectCard', card: sortedCards[0].source.name, payment: chooseHowToPay(game, option, sortedCards[0].source) } };
 
   case PlayerInputType.SELECT_SPACE: {
     const title = typeof option.title === "string" ? option.title : option.title.message;
@@ -273,7 +281,9 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
       // Source: "2.1 Card Advantage"
       const evaluateThisSpace = (space: SpaceId, game: PlayerViewModel) => evaluateSpace(space, game, TileType.GREENERY, false, false, true)
       const sortedSpaces = sortByEstimatedValue(option.availableSpaces, evaluateThisSpace, game);
-      return { score: sortedSpaces[0].result.score + 10, item: { type: 'space', spaceId: sortedSpaces[0].source } }
+      const score = sortedSpaces[0].result.score + victoryPointValue * 2;
+      if (log) console.log(`Select space : ${title}(${score})`);
+      return { score, item: { type: 'space', spaceId: sortedSpaces[0].source } }
     }
     else {
       throw new Error("Unexpected SELECT_SPACE option " + title);
@@ -339,10 +349,11 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel): {scor
           // through here, there are a lot of possible options
           // give it a low but positive score because most actions are useful
           score = 1;
-          console.log('Could not evaluate option! ', option);
+          if (log) console.log('Could not evaluate option! ', option);
         }
       }
     }
+    if (log) console.log(`Option: ${option.title} (${score})`);
     return { score, item: { type: 'option' } }
   
   
@@ -506,22 +517,18 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
   const title = typeof option.title === "string" ? option.title : option.title.message;
   switch (option.inputType) {
     case PlayerInputType.AND_OPTIONS:
-      return evaluateOption(option, game).item;
+      return evaluateOption(option, game, true).item;
 
     case PlayerInputType.OR_OPTIONS:
-      // Sort playable options by estimated value
-      // if no useful actions are found increase the value of victory points until one is found
-      var response: InputResponse = null;
+      // increase the value of victory points until a useful option is found
       for(victoryPointValue = 5; victoryPointValue < 25; victoryPointValue++) {
-        const bestOption = evaluateOption(option, game);
-        response = bestOption.item;
+        const bestOption = evaluateOption(option, game, false);
         if (bestOption.score > 0)
           break;
       }
-
       console.log();
-      console.log(`Player resources :M(${game.thisPlayer.megaCredits}),steel(${game.thisPlayer.steel}),titanium(${game.thisPlayer.titanium}),plants(${game.thisPlayer.plants}),energy(${game.thisPlayer.energy}),heat(${game.thisPlayer.heat}),cards(${game.thisPlayer.cardsInHandNbr})`);
-      console.log(`Player cards : ${game.cardsInHand.map(c => `${c.name}(${c.calculatedCost},${evaluateCard(c, game)})`).join(", ")}`);
+      console.log(`Player resources (${game.id}) :M(${game.thisPlayer.megaCredits}),steel(${game.thisPlayer.steel}),titanium(${game.thisPlayer.titanium}),plants(${game.thisPlayer.plants}),energy(${game.thisPlayer.energy}),heat(${game.thisPlayer.heat}),cards(${game.thisPlayer.cardsInHandNbr}),victoryPointValue(${victoryPointValue})`);
+      const response = evaluateOption(option, game, true).item;
       if (response.type === 'or')
         if (response.response.type === 'projectCard')
           console.log("Played card: " + response.response.card);
@@ -543,9 +550,10 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
           cardName = response.response.card;
         else if (response.response.type === 'card')
           cardName = response.response.cards[0];
-        const card = getCard(cardName)?.metadata?.renderData;
-        if (card)
-          evaluateCardComponent(card as MyCardComponent, game);
+        const card = getCard(cardName)
+        const renderData = card?.metadata?.renderData;
+        if (renderData)
+          evaluateCardComponent(renderData as MyCardComponent, game, card);
       }
       return response;
 
@@ -558,14 +566,28 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
           title.startsWith('Select a card to keep and pass the rest to') ||
           (title === "Select a card to discard"))
       {
-        console.log(`Cards for sale : ${option.cards.map(c => `${c.name}(${c.calculatedCost},${evaluateCard(c, game)})`).join(", ")}`);
+        victoryPointValue = 5;
         
         // Pick the best available cards
-        // TODO reverse when "title": "Select a card to discard" / "buttonLabel": "Discard",
         const sortedCards = sortByEstimatedValue(option.cards, evaluateCard, game);
         const invert = (title === "Select a card to discard") ? -1 : 1;
         var numberOfCards = option.min;
-        while ((numberOfCards < option.max) && (sortedCards[numberOfCards].result.score * invert > 3)) {
+
+        // avoid buying cards that are worce than all the cards in hand that could be played this turn
+        const existingCards = sortByEstimatedValue(game.cardsInHand, evaluateCard, game);
+        var cash = game.thisPlayer.megaCredits 
+          + game.thisPlayer.steel * game.thisPlayer.steelValue
+          + game.thisPlayer.titanium * game.thisPlayer.titaniumValue;
+        var cardIndex = 0;
+        while((cash > 0) && (cardIndex < existingCards.length))
+          cash -= existingCards[cardIndex++].source.calculatedCost;
+        var minimumCardValue = 0;
+        if ((cash < 0) && (cardIndex > 0))
+          minimumCardValue = existingCards[cardIndex-1].result.score;
+
+        console.log(`Cards for sale (gen:${game.game.generation},vpVal:${victoryPointValue},minVal:${minimumCardValue}) : ${option.cards.map(c => `${c.name}(${c.calculatedCost},${evaluateCard(c, game)})`).join(", ")}`);
+
+        while ((numberOfCards < option.max) && (sortedCards[numberOfCards].result.score * invert > Math.max(0, minimumCardValue) + 3)) {
           numberOfCards++;
         }
         return { type: 'card', cards: sortedCards.slice(0, numberOfCards).map(c => c.source.name) };
@@ -633,7 +655,7 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
       throw new Error(`Unsupported player input type! UNKNOWN (${PlayerInputType[option.inputType]})`);
   }
 }
-function evaluateCardComponent(cardComponent: MyCardComponent, game: PlayerViewModel, card?:ClientCard) {
+function evaluateCardComponent(cardComponent: MyCardComponent, game: PlayerViewModel, card:ClientCard) {
   switch (cardComponent?.is) {
     case 'root' : return evaluateCardComponents(cardComponent.rows, game, card);
     case 'effect' : return evaluateEffect(cardComponent.rows, game, card);
@@ -657,7 +679,19 @@ function evaluateTriggerCardComponent(cardComponent: MyCardComponent, game: Play
 }
 function evaluateCardComponents(cardComponents: MyCardComponent[][], game: PlayerViewModel, card?:ClientCard) {
   var score = 0;
-  cardComponents.forEach(c => c.forEach(component => score += evaluateCardComponent(component, game, card)));
+  var or = false;
+  cardComponents.forEach(c => 
+    c.forEach(component => {
+      if ((component.is === 'symbol') && (component.type === "OR"))
+        or = true;
+      else {
+        const localScore = evaluateCardComponent(component, game, card);
+        if (or)
+          score = Math.max(localScore, score);
+        else
+          score += localScore;
+      }
+    }));
   return score;
 }
 
@@ -689,7 +723,7 @@ function evaluateTriggerEffect(effect: MyCardComponent[][], game: PlayerViewMode
   // the benifit of an event is never negative, 
   // but reduced card costs can look negative so make them positive
   var benifit = 0;
-  effect[2].forEach(c => benifit += Math.abs(evaluateCardComponent(c,game)));
+  effect[2].forEach(c => benifit += Math.abs(evaluateCardComponent(c,game,card)));
   return benifit - cost;
 }
 
@@ -715,8 +749,34 @@ function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card
   }
   // the benifit of an event is never negative, 
   // but reduced card costs can look negative so make them positive
-  const benifit = Math.abs(evaluateCardComponent(effect[2][0],game));
-  return (benifit - cost)*occurences;
+  if ((effect[0][0].is === "item") && effect[0][0].type.startsWith('microbe') && (effect[2][0].is === "item") )
+  {
+    var localGame = {...game, game: { ...game.game } };
+    var microbes = card.name === "Nitrite Reducing Bacteria" ? 3 : 0
+    var score = 0;
+    while (localGame.game.generation <= 14)
+    {
+      if (microbes >= cost) {
+        const type = effect[2][0].type;
+        score += bonusValues(type, localGame, card);
+        microbes = -1;
+        if (type === 'oxygen')
+          localGame.game.oxygenLevel++; // should probably add more than one
+        else if (type === 'temperature')
+          localGame.game.temperature++; // should probably add more than one
+      }
+      microbes++;
+      if (game.thisPlayer.tableau.some(c => c.name === 'Symbiotic Fungus'))
+        microbes++;
+      localGame.game.generation++;
+    }
+    return score;
+  }
+  else
+  {
+    const benifit = Math.abs(evaluateCardComponent(effect[2][0],game,card));
+    return (benifit - cost)*occurences;
+  }
 }
 
 function evaluateProduction(rows: MyCardComponent[][], game: PlayerViewModel, card?:ClientCard) {
@@ -791,7 +851,7 @@ function bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
     if (bestSpaces.some && (bestSpaces[0].result.score > 0))
       score += bestSpaces[0].result.score;
   }
-  else if ((type !== 'text') && (trs[type] === undefined))
+  else if ((type !== 'text') && (type !== 'plate') && (trs[type] === undefined))
     console.log("Unknown resouce type: " + type);
   return score;
 }
@@ -815,14 +875,15 @@ function evaluateItem(cardComponent: CardRenderItem, game: PlayerViewModel, card
 function checkRequirement(requirement: ICardRequirement, level: number): number {
   if (requirement.isMax)
     if (level > requirement.amount)
-      return -100;
+      return -1000;
     else
-      return requirement.amount - level; 
+      return 0;
   else
     if (level >= requirement.amount)
       return 0;
     else
-      return level - requirement.amount;
+      // never choose cards that have unmet requirements because it messes up deciding which future cards to buy
+      return -1000; 
 }
 
 function evaluateRequirement(requirement: ICardRequirement, game: PlayerViewModel) {
@@ -830,7 +891,7 @@ function evaluateRequirement(requirement: ICardRequirement, game: PlayerViewMode
     case RequirementType.OXYGEN:
       return checkRequirement(requirement, game.game.oxygenLevel);
     case RequirementType.TEMPERATURE:
-      return checkRequirement(requirement, game.game.temperature);
+      return checkRequirement(requirement, game.game.temperature) / 2;
     case RequirementType.OCEANS:
       return checkRequirement(requirement, game.game.oceans);
     case RequirementType.TAG:
