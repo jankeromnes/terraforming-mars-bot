@@ -15,5 +15,6 @@
         "models/**/*.ts",
         "play-bot.ts",
         "start-game.ts",
+        "eval-card.ts",
     ],
   }

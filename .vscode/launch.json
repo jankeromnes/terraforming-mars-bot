@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/play-bot.ts",
-            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--games=10" ],
+            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=pc4dd5b88054f" ],
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
@@ -26,11 +26,24 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/play-bot.ts",
-            "args": [ "--bot=quantum", "--server=http://localhost:8080" ],
+            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=p543b75eb2b26"],
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
             ]
-        }
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Eval Card",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/eval-card.ts",
+            "args": [ "--card=ArchaeBacteria" ],
+            "outFiles": [
+                "${workspaceFolder}/built/**/*.js"
+            ]
+        }        
  
     ]
 }
