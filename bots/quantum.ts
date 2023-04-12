@@ -145,7 +145,7 @@ function parseRow(row: MyCardComponent[], game: PlayerViewModel, card?:ClientCar
           }
           break;
         case 'item':
-          rowScore += evaluateItem(item, game, card) * generationsLeft * multiplier;
+          rowScore += evaluateItem(item, game, card, true) * generationsLeft * multiplier;
           break;
         default:
           throw new Error(`Unexpected element in card '${card?.name}':  ${item.is}`);
@@ -160,23 +160,32 @@ function howManyTimesWillOccur(condition: MyCardComponent[]) {
 }
 
 // Source: "1. Efficiency of Cards" in https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy
-function evaluateVictoryPoints (victoryPoints: number | 'special' | IVictoryPoints, game: PlayerViewModel) {
+function evaluateVictoryPoints (victoryPoints: number | 'special' | IVictoryPoints | ICardRenderDynamicVictoryPoints, game: PlayerViewModel, cardName: string) {
   if (game.players.length < 2)
     return 0;
   if (typeof victoryPoints === 'number') {
     return victoryPointValue * victoryPoints;
-  } else if ((victoryPoints as any).per !== undefined){
+  } else if ((victoryPoints as IVictoryPoints).per !== undefined){
     const points = victoryPoints as IVictoryPoints;
     // todo take into account how many we will pick up during the game
     if(points.type === "resource")
         return 0;
     return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === points.type)?.count ?? 0) / points.per) * points.points * victoryPointValue;
-  } else if ((victoryPoints as any).target !== undefined){
+  } else if ((victoryPoints as ICardRenderDynamicVictoryPoints).target !== undefined){
     const points = victoryPoints as any as ICardRenderDynamicVictoryPoints;
     const type = points.item?.type as string;
     // type could be a type of tag or a type of resouce (this code only works for existing tags)
     // todo take into account how many we will pick up during the game
     return Math.floor((game.thisPlayer.tags.find(tag => tag.tag === type)?.count ?? 0) / points.target) * points.points * victoryPointValue;
+  } else if (victoryPoints === 'special') {
+    switch (cardName) {
+      case 'Capital': return 3 * victoryPointValue;
+      case 'Immigration Shuttles': return 3 * victoryPointValue;
+      case 'Search For Life': return 3 * victoryPointValue;
+      case 'Commercial District': return 2 * victoryPointValue;
+    }
+    console.log("Unexpected special victory points on card " + cardName);
+    return 0;
   }
 }
 
@@ -193,7 +202,7 @@ export function evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
   const card = getCard(cardInstance.name);
   var score = -(cardInstance.calculatedCost == null ? card.cost : cardInstance.calculatedCost);
   if (card && card.victoryPoints)
-    score += evaluateVictoryPoints(card.victoryPoints, game);
+    score += evaluateVictoryPoints(card.victoryPoints, game, card.name);
 
   if (card.productionBox)
     score += evaluateProductionBox(card.productionBox, game);
@@ -237,7 +246,7 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel, log: b
     if (option.options.every(o => o.inputType === PlayerInputType.SELECT_OPTION) && 
         sortedOptions.every(o => o.result.score === bestOption.result.score) && 
         (preferedOptionFromLastCard < option.options.length))
-      return { score: 1, item: { type: 'or', index: preferedOptionFromLastCard, response: { type: 'option' }}};
+      return { score: bestOption.result.score, item: { type: 'or', index: preferedOptionFromLastCard, response: { type: 'option' }}};
     const choice = option.options.indexOf(bestOption.source);
     return { score: bestOption.result.score, item: { type: 'or', index: choice, response: bestOption.result.item }};
 
@@ -301,16 +310,18 @@ function evaluateOption (option: PlayerInputModel, game: PlayerViewModel, log: b
       score = 25;
     }
     else if (title.match(/Convert (\d+) plants into greenery/)) {
-      // Source: "2.1 Card Advantage"
-      score = 19;
+      score = bonusValues("greenery", game, null);
     }
     else if (title === 'Convert 8 heat into temperature') {
-      // Source: "1.1 Standard Cards"
-      score = 10;
+      score = bonusValues("temperature", game, null);
     }
     else if (title === 'Pass for this generation') {
       // Only pass when no "good" choices remain
       score = 0;
+    }
+    else if (title === 'End Turn') {
+      // often it is good to end the turn, but figuring out when is hard
+      score = -1;
     }
     else if (title === 'Sell patents') {
       // Don't sell patents
@@ -434,18 +445,21 @@ function playInitialResearchPhase(game:PlayerViewModel, availableCorporations:Ca
 
   // Sort corporation by estimated value
   const sortedCorporations = sortByEstimatedValue(availableCorporations, evaluateCorporation, game);
+  console.log(`Corporations: ${sortedCorporations.map(c => `${c.source.name}(${c.result.score})`).join()}`)
 
   // Pick the best available corporation
   const corporation = sortedCorporations[0];
 
   // Pick the best available cards
-  const initialCards = availableCards.filter(c => evaluateCard(c, game) > 3);
+  const sortedCards = sortByEstimatedValue(availableCards, evaluateCard, game);
+  console.log(`Initial cards: ${sortedCards.map(c => `${c.source.name}(${c.result.score})`).join()}`)
+  const initialCards = sortedCards.filter(c => c.result.score > 3).map(c => c.source.name);
 
   return { 
     type: 'and', 
     responses: [
       { type: 'card', cards: [corporation.source.name]}, 
-      { type: 'card', cards: initialCards.map(c => c.name)}
+      { type: 'card', cards: initialCards}
     ]
   };
 }
@@ -614,7 +628,9 @@ export function play(game:PlayerViewModel, option:PlayerInputModel): InputRespon
       return { type: 'option' };
 
     case PlayerInputType.SELECT_PLAYER:
-      return { type: 'player', player: chooseRandomItem(option.players)};
+      // should select the winning player
+      const player = option.players.find(p => p != game.thisPlayer.color) ?? game.thisPlayer.color
+      return { type: 'player', player};
 
     case PlayerInputType.SELECT_SPACE:
       var tileType = tileFromLastCardEvaluated;
@@ -661,7 +677,7 @@ function evaluateCardComponent(cardComponent: MyCardComponent, game: PlayerViewM
     case 'effect' : return evaluateEffect(cardComponent.rows, game, card);
     case 'production-box' : return evaluateProduction(cardComponent.rows, game, card);
     case 'tile' : return evaluateTile(cardComponent, game, card);
-    case 'item' : return evaluateItem(cardComponent, game, card);
+    case 'item' : return evaluateItem(cardComponent, game, card, false);
     case 'symbol' : return 0;
     default: return 0;
   }
@@ -738,8 +754,14 @@ function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card
       occurences = 5; // TODO: total guess
       break;
     // spend x to do y
-    case '->':
+    case '->': 
       cost = evaluateCardComponent(effect[0][0], game, card);
+      if (effect[0][0].is === "item") {
+        const costType = typeSingular(effect[0][0]);
+        if ((costType === 'energy') || (costType === 'titanium') || (costType === 'steel') && 
+            (game.thisPlayer[`${costType}Production`] < effect[0][0].amount))
+          cost = 100;
+      }
       break;
     case 'OR':
       break;
@@ -747,23 +769,23 @@ function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card
       throw new Error(`Cannot understand effect on card '${card?.name}' that has this symbol in the middle: ${JSON.stringify(effect)}`);
 
   }
-  // the benifit of an event is never negative, 
-  // but reduced card costs can look negative so make them positive
-  if ((effect[0][0].is === "item") && effect[0][0].type.startsWith('microbe') && (effect[2][0].is === "item") )
+  const type = (effect[2][0].is === "item") ? effect[2][0].type : undefined;
+  if ((effect[0][0].is === "item") && ((type === 'ocean') || (type === 'temperature') || (type === 'oxygen') || (type === 'tr')))
   {
     var localGame = {...game, game: { ...game.game } };
     var microbes = card.name === "Nitrite Reducing Bacteria" ? 3 : 0
     var score = 0;
     while (localGame.game.generation <= 14)
     {
-      if (microbes >= cost) {
-        const type = effect[2][0].type;
+      if (!effect[0][0].type.startsWith('microbe') || microbes >= cost) {
         score += bonusValues(type, localGame, card);
         microbes = -1;
         if (type === 'oxygen')
           localGame.game.oxygenLevel++; // should probably add more than one
         else if (type === 'temperature')
           localGame.game.temperature++; // should probably add more than one
+        else if (type === 'ocean')
+          localGame.game.oceans++; // should probably add more than one
       }
       microbes++;
       if (game.thisPlayer.tableau.some(c => c.name === 'Symbiotic Fungus'))
@@ -774,6 +796,8 @@ function evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card
   }
   else
   {
+    // the benifit of an event is never negative, 
+    // but reduced card costs can look negative so make them positive
     const benifit = Math.abs(evaluateCardComponent(effect[2][0],game,card));
     return (benifit - cost)*occurences;
   }
@@ -855,19 +879,21 @@ function bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
     console.log("Unknown resouce type: " + type);
   return score;
 }
-function evaluateItem(cardComponent: CardRenderItem, game: PlayerViewModel, card?:ClientCard) {
+const typeSingular = (cardComponent: CardRenderItem) => cardComponent.type.endsWith("s") ? cardComponent.type.slice(0,-1) : cardComponent.type;
+function evaluateItem(cardComponent: CardRenderItem, game: PlayerViewModel, card:ClientCard, production:boolean) {
+  var amount = cardComponent.amount;
   // if this is affecting other players then the value 
   // is lower the more player there are
+  const type = typeSingular(cardComponent);
   const divider = cardComponent.anyPlayer 
     ? game.players.length < 2
       ? -10000
-      : -game.players.length
+      : (!production || (type === "megacredit") || game.players.some(p => (p.color !== game.thisPlayer.color) && (p[`${type}Production`] >= amount))) ? -(game.players.length-1) : 1
     : 1;
-  var amount = cardComponent.amount;
   // for some reson some cards show amount of -1 even thought they are avtually +1
-  if ((cardComponent.type === 'city') || (cardComponent.type === 'greenery'))
+  if ((type === 'city') || (type === 'greenery'))
     amount = Math.abs(amount);
-  return bonusValues(cardComponent.type, game, card) * amount / divider;
+  return bonusValues(type, game, card) * amount / divider;
 }
 
 // reduce value by one point per missing requirement
