@@ -26,7 +26,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/play-bot.ts",
-            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=p543b75eb2b26"],
+            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=p61957b6dd27e"],
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
             ]
@@ -39,7 +39,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/eval-card.ts",
-            "args": [ "--card=ArchaeBacteria" ],
+            "args": [ "--card=Heat Trappers", "--gameState={ \\\"game\\\": { \\\"generation\\\": 3 }, \\\"thisPlayer\\\": { \\\"color\\\": \\\"red\\\"  }, \\\"players\\\": [ {\\\"color\\\":\\\"red\\\"},{\\\"color\\\":\\\"green\\\", \\\"heatProduction\\\":3}]}" ],
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
             ]

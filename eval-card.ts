@@ -25,18 +25,16 @@ OPTIONS
     --card=CARD
         Evaluate the named card
 
-    --generation=NUMBER
-        Evaluate as if on eneration NUMBER
-
-    --ignore-errors
-        If an error occurs during a game, ignore it and just play another game`;
+    --gameState=JSON
+        Evaluate given this game state`;
 const argv = minim(process.argv.slice(2));
 if (argv.h || argv.help || argv._.length > 1) {
   console.log(usage);
   process.exit();
 }
+const gameState = JSON.parse(argv.gameState);
 const game: GameModel = {
-  generation: argv.generation ?? 1,
+  generation: 1,
   aresData: undefined,
   awards: [],
   colonies: [],
@@ -98,7 +96,8 @@ const game: GameModel = {
   isTerraformed: false,
   turmoil: undefined,
   undoCount: 0,
-  venusScaleLevel: 0
+  venusScaleLevel: 0,
+  ...gameState?.game
 }
 const noProtection: Record<Resources, Protection> = {
   [Resources.MEGACREDITS]: 'off',
@@ -126,8 +125,7 @@ const victoryPointsBreakdown: IVictoryPointsBreakdown = {
   detailsAwards: [],
   detailsPlanetaryTracks: []
 }
-const playerGame: PlayerViewModel = {
-  game,
+const playerGame: PlayerViewModel = { 
   cardsInHand: [],
   dealtCorporationCards: [],
   dealtPreludeCards: [],
@@ -191,7 +189,9 @@ const playerGame: PlayerViewModel = {
     victoryPointsByGeneration: []
   },
   waitingFor: undefined,
-  players: []
+  players: [],
+  ...gameState,
+  game,
 }
 const card: CardModel = {
   name: argv.card,
