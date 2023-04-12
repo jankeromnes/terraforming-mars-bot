@@ -1,5 +1,5 @@
 import * as minim from 'minimist';
-import { evaluateCard } from "./bots/quantum"
+import { quantum } from "./bots/quantum"
 import type { PlayerViewModel, Protection } from './terraforming-mars/src/common/models/PlayerModel';
 import type { CardModel } from './terraforming-mars/src/common/models/CardModel.js';
 import { CardType } from './terraforming-mars/src/common/cards/CardType.js'
@@ -202,4 +202,4 @@ const card: CardModel = {
 }
 
 
-console.log(evaluateCard(card, playerGame));
+console.log(new quantum().evaluateCard(card, playerGame));

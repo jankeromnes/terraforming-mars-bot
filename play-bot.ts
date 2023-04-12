@@ -7,6 +7,8 @@ import type { InputResponse } from "./terraforming-mars/src/common/inputs/InputR
 import { PlayerInputModel } from './terraforming-mars/src/common/models/PlayerInputModel.js';
 import type { PlayerViewModel } from './terraforming-mars/src/common/models/PlayerModel.js'
 import { Phase } from './terraforming-mars/src/common/Phase.js';
+import { IBot } from './bots/IBot.js';
+import { quantum } from './bots/quantum.js';
 
 const usage = `USAGE
 
@@ -95,13 +97,22 @@ if (scores.length > 1) {
 
 playGames();
 
-var lastMove:PlayerInputModel;
+function getBot(name:string):IBot {
+  switch (name){
+    case 'quantum':
+      return new quantum();
+    default:
+      throw new Error("Unknown bot name " + name);
+  }
+}
+
+var lastMove:InputResponse;
 var lastWaitingFor:PlayerInputModel;
 async function playGame (botPath: string, serverUrl: string, gameNumber: number, playerId?: string) {
   playerId = playerId ?? (await startGame([botPath], serverUrl, true))[0].id;
 
   // Load bot script
-  const bot = await import(`./bots/${botPath}.js`);
+  const bot: IBot = getBot(botPath);
 
   // Initial research phase
   let game = await waitForTurn(serverUrl, playerId, undefined);
