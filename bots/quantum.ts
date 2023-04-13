@@ -75,7 +75,6 @@ parseRows (rows: MyCardComponent[][], game: PlayerViewModel, card?:ClientCard) {
 }
 
 parseRow(row: MyCardComponent[], game: PlayerViewModel, card?:ClientCard) {
-  var generationsLeft = 14 - game.game.generation; // TODO: improve this guess
   var rowScore = 0;
   var index = -1;
   var multiplier = 1;
@@ -110,7 +109,7 @@ parseRow(row: MyCardComponent[], game: PlayerViewModel, card?:ClientCard) {
             // action: spend cost, get benifit
             const cost = this.parseRow(row.slice(0, index), game);
             const benifit = this.parseRow(row.slice(index+1), game);
-            const netBenifit = (benifit - cost) * generationsLeft
+            const netBenifit = (benifit - cost) * this.remainingGenerations(game);
             return netBenifit;
           case 'OR': 
             const firstPart = this.parseRow(row.slice(0, index), game);
@@ -148,7 +147,7 @@ parseRow(row: MyCardComponent[], game: PlayerViewModel, card?:ClientCard) {
           }
           break;
         case 'item':
-          rowScore += this.evaluateItem(item, game, card, true) * generationsLeft * multiplier;
+          rowScore += this.evaluateItem(item, game, card, true) * this.remainingGenerations(game) * multiplier;
           break;
         default:
           throw new Error(`Unexpected element in card '${card?.name}':  ${item.is}`);
@@ -216,6 +215,8 @@ public evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
     card.requirements.requirements.forEach(requirement => score += this.evaluateRequirement(requirement, game));
   return score;
 }
+
+remainingGenerations = (game: PlayerViewModel) => 14 - game.game.generation;
 
 evaluateTriggerCard (cardInstance: CardModel, game: PlayerViewModel) {
   if (cardInstance.isDisabled)
@@ -343,8 +344,7 @@ evaluateOption (option: PlayerInputModel, game: PlayerViewModel, log: boolean): 
       const match = title.match(/Increase your ([a-z]+) production (\d+) step/);
       if (match && (match.length === 3))
       {
-        const generationsLeft = 14 - game.game.generation;
-        score = +match[2] * this.bonusValues(match[1], game) * generationsLeft;
+        score = +match[2] * this.bonusValues(match[1], game) * this.remainingGenerations(game);
       }
       else
       {
@@ -746,7 +746,7 @@ evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card?:ClientC
   if ((effect.length !== 3) || (effect[1].length !== 1) || (effect[1][0].is !== 'symbol'))
     throw new Error("Cannot understand effect that doesn't have 3 rows with a symbol in the middle: " + JSON.stringify(effect));
   var cost = 0;
-  var occurences = 14 - game.game.generation;
+  var occurences = this.remainingGenerations(game);
   switch (effect[1][0].type) {
     // when x do y
     case ':':
@@ -774,7 +774,7 @@ evaluateEffect(effect: MyCardComponent[][], game: PlayerViewModel, card?:ClientC
     var localGame = {...game, game: { ...game.game } };
     var microbes = card.name === "Nitrite Reducing Bacteria" ? 3 : 0
     var score = 0;
-    while (localGame.game.generation <= 14)
+    while (localGame.game.generation <= game.game.generation + this.remainingGenerations(game))
     {
       if (!effect[0][0].type.startsWith('microbe') || microbes >= cost) {
         score += this.bonusValues(type, localGame, card);
@@ -858,11 +858,11 @@ bonusValues(type: string, game: PlayerViewModel, card?:ClientCard) {
     if (type === 'oxygen')
       return 0;
     else
-      trs.greenery -= this.victoryPointValue + 14 - game.game.generation;
+      trs.greenery -= this.victoryPointValue + this.remainingGenerations(game);
 
   var score = 0;
   if (trs[type])
-    score += trs[type] + 14 - game.game.generation;
+    score += trs[type] + this.remainingGenerations(game);
   const tileType = this.getTileType(type)
   if (tileType !== undefined)
   {

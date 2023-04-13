@@ -9,6 +9,7 @@ import type { PlayerViewModel } from './terraforming-mars/src/common/models/Play
 import { Phase } from './terraforming-mars/src/common/Phase.js';
 import { IBot } from './bots/IBot.js';
 import { quantum } from './bots/quantum.js';
+import { player } from './bots/player.js';
 
 const usage = `USAGE
 
@@ -19,7 +20,7 @@ OPTIONS
     -h, --help
         Print usage information
 
-    --bot=BOT
+    --bots=[BOTS]
         Play with a specific bot script from the bots/ directory (default is --bot=quantum)
 
     --server=SERVER
@@ -43,18 +44,28 @@ const scores: {}[] = [];
 const trs: number[] = []
 const finalStates: string[] = [];
 const games = argv.games ?? 1;
+const serverUrl = argv.server ?? 'http://localhost:8080';
+const bots:string[] = argv.bots?.split(',') ?? ['quantum'];
 while (scores.length < games) {
 try {
-    const game = await playGame(argv.bot ?? 'quantum', argv.server ?? 'http://localhost:8080', scores.length + 1, argv.playerId);
-    console.log('Final scores:\n' + game.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
+  var finalState:PlayerViewModel = undefined;
+    if (argv.playerId) {
+      finalState = await playGame(bots[0], serverUrl, scores.length + 1, argv.playerId)
+    } else {
+      const game = await startGame(bots.map((b,i) => `${b}${i}`), serverUrl, true);
+      const players = game.map(p => playGame(p.name.slice(0,-1), serverUrl, scores.length + 1, p.id))
+      const finalStates = await Promise.all(players);
+      finalState = finalStates[0];
+    }
+    console.log('Final scores:\n' + finalState.players.map(p => `  - ${p.name} (${p.color}): ${p.victoryPointsBreakdown.total} points`).join('\n'));
     const score = {};
-    for (const p of game.players) {
+    for (const p of finalState.players) {
       score[p.name] = p.victoryPointsBreakdown.total;
     }
     scores.push(score);
-    if (game.players.length === 1) {
-      trs.push(game.players[0].victoryPointsBreakdown.terraformRating);
-      finalStates.push(`temp=${game.game.temperature}, oxy=${game.game.oxygenLevel}, oceans=${game.game.oceans}`);
+    if (finalState.players.length === 1) {
+      trs.push(finalState.players[0].victoryPointsBreakdown.terraformRating);
+      finalStates.push(`temp=${finalState.game.temperature}, oxy=${finalState.game.oxygenLevel}, oceans=${finalState.game.oceans}`);
     }
 } catch (error) {
   console.log("Last move:", lastMove)
@@ -101,6 +112,8 @@ function getBot(name:string):IBot {
   switch (name){
     case 'quantum':
       return new quantum();
+    case 'player':
+      return new player();
     default:
       throw new Error("Unknown bot name " + name);
   }
@@ -108,8 +121,7 @@ function getBot(name:string):IBot {
 
 var lastMove:InputResponse;
 var lastWaitingFor:PlayerInputModel;
-async function playGame (botPath: string, serverUrl: string, gameNumber: number, playerId?: string) {
-  playerId = playerId ?? (await startGame([botPath], serverUrl, true))[0].id;
+async function playGame (botPath: string, serverUrl: string, gameNumber: number, playerId: string) {
 
   // Load bot script
   const bot: IBot = getBot(botPath);

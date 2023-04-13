@@ -26,7 +26,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/play-bot.ts",
-            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=p61957b6dd27e"],
+            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--bots=quantum,player"],
             "outFiles": [
                 "${workspaceFolder}/built/**/*.js"
             ]
