@@ -1,4 +1,6 @@
+import { CardType } from "../terraforming-mars/src/common/cards/CardType";
 import { PlayerViewModel } from "../terraforming-mars/src/common/models/PlayerModel";
+import { getCard } from "./ClientCardManifest";
 import { quantum } from "./quantum";
 
 export class player extends quantum {
@@ -13,7 +15,8 @@ export class player extends quantum {
         })
         if (expectedOceans >= 9 && expectedTemperature >= 8 && expectedOxygen >= 14)
             return 0;
-        return Math.max(1, this.lastGeneration(game.players.length) - game.game.generation);
+        const prelude = (game.preludeCardsInHand?.length ?? 0) + game.thisPlayer.tableau.filter(c => getCard(c.name).cardType === CardType.PRELUDE).length > 0
+        return Math.max(1, this.lastGeneration(game.players.length) - (prelude ? 2 : 0)  - game.game.generation);
     }
 
     lastGeneration(players:number) {

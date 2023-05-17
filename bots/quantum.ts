@@ -20,6 +20,7 @@ import { SpaceModel } from '../terraforming-mars/src/common/models/SpaceModel.js
 import { SpaceBonus } from '../terraforming-mars/src/common/boards/SpaceBonus.js';
 import { CardName } from '../terraforming-mars/src/common/cards/CardName.js';
 import { IBot } from './IBot.js';
+import { CardType } from '../terraforming-mars/src/common/cards/CardType.js';
 
 // Copyright © 2020 Jan Keromnes.
 // The following code is covered by the MIT license.
@@ -42,25 +43,25 @@ evaluateCorporation (corporation: CardModel, game:PlayerViewModel) {
     case 'Teractor':
       return 60 + game.dealtProjectCards.filter(c => getCard(c.name).tags.includes(Tag.EARTH)).length * 3;
     case 'Tharsis Republic':
-      return 52;
+      return 40 + this.bonusValues("city", game) + this.remainingGenerations(game);
     case 'Helion':
-      return 57;
+      return 42 + this.bonusValues("heat", game) * 3 * this.remainingGenerations(game);
     case 'Interplanetary Cinematics':
-      return 70;
+      return 30 + this.bonusValues("steel", game) * 20  + game.dealtProjectCards.filter(c => getCard(c.name).tags.includes(Tag.EVENT)).length * 2;
     case 'Mining Guild':
-      return 48; // TODO: Plus 8M for each bonus Steel Production you can gain early.
+      return 30 + this.bonusValues("steel", game) * (5 + this.remainingGenerations(game)); // TODO: Plus 8M for each bonus Steel Production you can gain early.
     case 'PhoboLog':
-      return 63;
+      return 23 + (this.bonusValues("titanium", game) + 1) * 10;
     case 'CrediCor':
-      return 57;
+      return 57 + game.dealtProjectCards.filter(c => c.calculatedCost >= 20).length * 4;
     case 'EcoLine':
-      return 62;
+      return 36 + this.bonusValues("plant", game) * (8/7) * (3 + 2 * this.remainingGenerations(game));
     case 'United Nations Mars Initiative':
-      return 40;
+      return 40;  // TODO
     case 'Inventrix':
-      return 51; // TODO: +4M if that Science Symbol fulfills the requirement of cards you plan to play early.
+      return 45 + this.bonusValues("card", game) * 3; // TODO: +4M if that Science Symbol fulfills the requirement of cards you plan to play early.
     case 'Thorgate':
-      return 55;
+      return 48 + this.bonusValues("energy", game) * this.remainingGenerations(game) + game.dealtProjectCards.filter(c => getCard(c.name).tags.includes(Tag.POWER)).length * 3;
     default:
       throw new Error(`Unsupported corporation! ${corporation.name}`);
   }
@@ -213,7 +214,86 @@ public evaluateCard (cardInstance: CardModel, game: PlayerViewModel) {
 
   if (card.requirements)
     card.requirements.requirements.forEach(requirement => score += this.evaluateRequirement(requirement, game));
+  
+  score += this.evaluateRebate(game, card)
   return score;
+}
+
+evaluateRebate(game: PlayerViewModel, card: ClientCard) {
+  var rebate = 0;
+  game.thisPlayer.tableau.forEach(rebateCard => rebate += this.rebateFromCard(rebateCard, card, game) + this.rebateFromCardTags(rebateCard, card.tags, game));
+  return rebate;
+}
+evaluateEventRebate(game: PlayerViewModel, card: ClientCard) {
+  var rebate = 0;
+  var mockTags = card.name === "City" ? [Tag.CITY] : card.name === "Power Plant:SP" ? [Tag.POWER] : [];
+  game.thisPlayer.tableau.forEach(rebateCard => rebate += this.rebateFromEvent(rebateCard, card, game) + this.rebateFromCardTags(rebateCard, mockTags, game));
+  return rebate;
+}
+rebateFromCardTags(rebateCard: CardModel, tags: Tag[], game: PlayerViewModel) {
+  switch(rebateCard.name)
+  {
+    // cards
+    case "Optimal Aerobraking":
+      return tags.some(t => t === Tag.SPACE) ? 3 + this.bonusValues("heat", game) * 3 : 0;
+    case "Rover Construction":
+      return tags.some(t => t === Tag.CITY) ? 2 : 0;
+    case "Immigrant City":
+      return tags.some(t => t === Tag.CITY) ? this.remainingGenerations(game) : 0;
+    case "Pets":
+      return tags.some(t => t === Tag.CITY) ? this.victoryPointValue / 2 : 0;
+    case "Earth Office":
+      return tags.some(t => t === Tag.EARTH) ? 3 : 0;
+    case "Media Group":
+      return tags.some(t => t === Tag.EVENT) ? 2 : 0;
+    case "Olympus Conference":
+      return tags.filter(t => t === Tag.SCIENCE).length * this.bonusValues("card", game) / 2;
+    case "Mars University":
+      return tags.filter(t => t === Tag.SCIENCE).length;  // TODO: Not sure about this
+    case "Decomposers":
+      return tags.filter(t => t === Tag.PLANT || t === Tag.MICROBE || t === Tag.ANIMAL).length * this.victoryPointValue / 3;
+    case "Viral Enhancers":
+      return tags.filter(t => t === Tag.PLANT || t === Tag.MICROBE || t === Tag.ANIMAL).length * this.bonusValues("plant", game);
+  
+    // coprorations            
+    case "Thorgate":
+      return tags.some(t => t === Tag.POWER) ? 3 : 0;
+    case "Interplanetary Cinematics":
+      return tags.some(t => t === Tag.EVENT) ? 2 : 0;
+    case "Point Luna":
+      return tags.some(t => t === Tag.EARTH) ? this.bonusValues("card", game) : 0;
+    case "Tharsis Republic": 
+      return tags.some(t => t === Tag.CITY) ? this.remainingGenerations(game) + 3 : 0;
+    case "Valley Trust":
+      return tags.some(t => t === Tag.BUILDING) ? 2 : 0;
+  }
+  return 0;
+}
+
+rebateFromCard(rebateCard: CardModel, card: ClientCard, game: PlayerViewModel) {
+  switch(rebateCard.name)
+  {
+    case "CrediCor":
+      return card.cost >= 20 ? 4 : 0;
+    case "Arctic Algae":
+      return typeof(card.metadata.description) === "string" && card.metadata.description.match(/place ([1-9]|an) ocean tile/i) ? this.bonusValues("plant", game) : 0;
+    case "Vitor":
+      return (typeof(this.victoryPointValue) !== 'number' || this.victoryPointValue > 0) ? 3 : 0;
+  }
+  return 0;
+}
+
+rebateFromEvent(rebateCard: CardModel, card: ClientCard, game: PlayerViewModel) {
+  switch(rebateCard.name)
+  {
+    case "CrediCor":
+      return card.name === "Greenery" || card.name === "City" ? 4 : 0;
+    case "Arctic Algae":
+      return typeof(card.metadata.description) === "string" && card.metadata.description.match(/place ([1-9]|an) ocean tile/i) ? this.bonusValues("plant", game) * 2 : 0;
+    case "Standard Technology":
+      return card.cardType === CardType.STANDARD_PROJECT ? 3 : 0;
+  }
+  return 0;
 }
 
 remainingGenerations = (game: PlayerViewModel) => 14 - game.game.generation;
@@ -222,10 +302,10 @@ evaluateTriggerCard (cardInstance: CardModel, game: PlayerViewModel) {
   if (cardInstance.isDisabled)
     return -10000;
   const card = getCard(cardInstance.name);
-  if (card && card.metadata.renderData)
-    return this.evaluateTriggerCardComponent(card.metadata.renderData as MyCardComponent, game, card);
+  const score = this.evaluateTriggerCardComponent(card.metadata.renderData as MyCardComponent, game, card)
+       + this.evaluateEventRebate(game, card);
 
-  throw new Error ("Unrecognised card found " + cardInstance.name);
+  return score;
 }
 
 // Source: https://boardgamegeek.com/thread/1847708/quantified-guide-tm-strategy

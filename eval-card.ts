@@ -137,6 +137,8 @@ const playerGame: PlayerViewModel = {
   ceoCardsInHand: [],
   pickedCorporationCard: [],
   preludeCardsInHand: [],
+  players: [],
+  ...gameState,
   thisPlayer: {
     actionsTakenThisRound: 0,
     actionsThisGeneration: [],
@@ -186,11 +188,9 @@ const playerGame: PlayerViewModel = {
     titaniumValue: 0,
     tradesThisGeneration: 0,
     victoryPointsBreakdown: victoryPointsBreakdown,
-    victoryPointsByGeneration: []
+    victoryPointsByGeneration: [],
+    ...gameState?.thisPlayer
   },
-  waitingFor: undefined,
-  players: [],
-  ...gameState,
   game,
 }
 const card: CardModel = {
