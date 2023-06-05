@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "lib": ["dom", "es2019"],
+      "outDir": "./built",
+      "target": "ES2022",
+      "module": "CommonJS",
+      "moduleResolution": "node",
+      "allowSyntheticDefaultImports": true,
+      "resolveJsonModule": true,
+      "sourceMap": true,
+      "incremental": true
+    },
+    "include": [
+        "bots/**/*.ts",
+        "models/**/*.ts",
+        "play-bot.ts",
+        "start-game.ts",
+        "eval-card.ts",
+    ],
+  }

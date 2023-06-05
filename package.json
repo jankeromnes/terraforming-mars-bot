@@ -15,10 +15,19 @@
     "url": "https://github.com/jankeromnes/terraforming-mars-bot"
   },
   "scripts": {
+    "build": "tsc",
+    "start": "node built\\play-bot.js",
     "release": "npm version patch && git push origin master --tags"
   },
   "dependencies": {
-    "minimist": "1.2.5"
+    "copyfiles": "^2.4.1",
+    "minimist": "^1.2.8",
+    "node-fetch": "^3.3.1",
+    "typescript": "^5.0.4"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/minimist": "^1.2.2",
+    "@types/node": "^20.1.0",
+    "@types/node-fetch": "^2.6.4"
+  }
 }

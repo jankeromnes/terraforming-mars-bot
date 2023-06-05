@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/play-bot.ts",
+            "args": [ "--bot=quantum", "--server=http://localhost:8080", "--playerId=pc4dd5b88054f" ],
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "outFiles": [
+                "${workspaceFolder}/built/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "No Build Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/play-bot.ts",
+            "args": [ "--server=http://localhost:8080", "--bots=quantum,player"],
+            "outFiles": [
+                "${workspaceFolder}/built/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Eval Card",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/eval-card.ts",
+            "args": [ "--card=Heat Trappers", "--gameState={ \\\"game\\\": { \\\"generation\\\": 3 }, \\\"thisPlayer\\\": { \\\"color\\\": \\\"red\\\"  }, \\\"players\\\": [ {\\\"color\\\":\\\"red\\\"},{\\\"color\\\":\\\"green\\\", \\\"heatProduction\\\":3}]}" ],
+            "outFiles": [
+                "${workspaceFolder}/built/**/*.js"
+            ]
+        }        
+ 
+    ]
+}
