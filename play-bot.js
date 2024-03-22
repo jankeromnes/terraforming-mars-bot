@@ -92,6 +92,8 @@ async function playGame (playerLink, botPath) {
   const availableCards = game.waitingFor.options[1].cards;
   annotateCards(game, availableCards);
   let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
+  // FIXME: New expected move format: {"runId":"r1a752108d3b6","type":"and","responses":[{"type":"card","cards":["CrediCor"]},{"type":"card","cards":["Vesta Shipyard"]}]}
+  // instead of: [ [ 'CrediCor' ], [ 'Vesta Shipyard' ] ]
   game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
 
   // Play the game until the end
@@ -183,5 +185,5 @@ function annotateMapSpaces (game) {
 }
 
 function logGameState (game) {
-  console.log(`Game state (${game.players.length}p): gen=${game.generation}, temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
+  console.log(`Game state (${game.players.length}p): gen=${game.game.generation}, temp=${game.game.temperature}, oxy=${game.game.oxygenLevel}, oceans=${game.game.oceans}, phase=${game.game.phase}`);
 }
