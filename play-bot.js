@@ -6,9 +6,9 @@ const path = require('path');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const request = require('./lib/request');
-const { CardFinder } = require('./terraforming-mars/build/src/CardFinder');
-const { PlayerInputTypes } = require('./terraforming-mars/build/src/PlayerInputTypes');
-const { SpaceBonus } = require('./terraforming-mars/build/src/SpaceBonus');
+const { CardFinder } = require('./terraforming-mars/build/src/server/CardFinder');
+const { PlayerInputTypes } = require('./terraforming-mars/build/src/common/input/PlayerInputType');
+const { SpaceBonus } = require('./terraforming-mars/build/src/common/boards/SpaceBonus');
 
 const usage = `USAGE
 
