@@ -17,12 +17,3 @@ tasks:
       gp await-port 8080 &&
       sleep 2 &&
       node play-bot --games=5
-
-github:
-  prebuilds:
-    master: true
-    branches: true
-    pullRequests: true
-    pullRequestsFromForks: true
-    addCheck: true
-    addComment: true
