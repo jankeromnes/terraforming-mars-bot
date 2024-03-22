@@ -6,9 +6,9 @@ const path = require('path');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const request = require('./lib/request');
-const { CardFinder } = require('./terraforming-mars/build/src/CardFinder');
-const { PlayerInputTypes } = require('./terraforming-mars/build/src/PlayerInputTypes');
-const { SpaceBonus } = require('./terraforming-mars/build/src/SpaceBonus');
+const { CardFinder } = require('./terraforming-mars/build/src/server/CardFinder');
+const { PlayerInputTypes } = require('./terraforming-mars/build/src/common/input/PlayerInputType');
+const { SpaceBonus } = require('./terraforming-mars/build/src/common/boards/SpaceBonus');
 
 const usage = `USAGE
 
@@ -92,6 +92,8 @@ async function playGame (playerLink, botPath) {
   const availableCards = game.waitingFor.options[1].cards;
   annotateCards(game, availableCards);
   let move = await bot.playInitialResearchPhase(game, availableCorporations, availableCards);
+  // FIXME: New expected move format: {"runId":"r1a752108d3b6","type":"and","responses":[{"type":"card","cards":["CrediCor"]},{"type":"card","cards":["Vesta Shipyard"]}]}
+  // instead of: [ [ 'CrediCor' ], [ 'Vesta Shipyard' ] ]
   game = await playMoveAndWaitForTurn(serverUrl, playerId, move);
 
   // Play the game until the end
@@ -183,5 +185,5 @@ function annotateMapSpaces (game) {
 }
 
 function logGameState (game) {
-  console.log(`Game state (${game.players.length}p): gen=${game.generation}, temp=${game.temperature}, oxy=${game.oxygenLevel}, oceans=${game.oceans}, phase=${game.phase}`);
+  console.log(`Game state (${game.players.length}p): gen=${game.game.generation}, temp=${game.game.temperature}, oxy=${game.game.oxygenLevel}, oceans=${game.game.oceans}, phase=${game.game.phase}`);
 }
